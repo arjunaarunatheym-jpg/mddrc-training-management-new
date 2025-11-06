@@ -330,6 +330,77 @@ const AdminDashboard = ({ user, onLogout }) => {
     return coordinator ? coordinator.full_name : "Unknown";
   };
 
+  // Edit/Delete handlers
+  const handleEditProgram = (program) => {
+    setEditingProgram({ ...program });
+    setEditProgramDialogOpen(true);
+  };
+
+  const handleUpdateProgram = async () => {
+    try {
+      await axiosInstance.put(`/programs/${editingProgram.id}`, {
+        name: editingProgram.name,
+        description: editingProgram.description,
+        pass_percentage: editingProgram.pass_percentage,
+      });
+      toast.success("Program updated successfully");
+      setEditProgramDialogOpen(false);
+      setEditingProgram(null);
+      loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to update program");
+    }
+  };
+
+  const handleEditCompany = (company) => {
+    setEditingCompany({ ...company });
+    setEditCompanyDialogOpen(true);
+  };
+
+  const handleUpdateCompany = async () => {
+    try {
+      await axiosInstance.put(`/companies/${editingCompany.id}`, {
+        name: editingCompany.name,
+      });
+      toast.success("Company updated successfully");
+      setEditCompanyDialogOpen(false);
+      setEditingCompany(null);
+      loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to update company");
+    }
+  };
+
+  const handleDeleteClick = (type, item) => {
+    setDeleteTarget({ type, item });
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    
+    try {
+      const { type, item } = deleteTarget;
+      
+      if (type === "program") {
+        await axiosInstance.delete(`/programs/${item.id}`);
+        toast.success("Program deleted successfully");
+      } else if (type === "company") {
+        await axiosInstance.delete(`/companies/${item.id}`);
+        toast.success("Company deleted successfully");
+      } else if (type === "trainer" || type === "coordinator" || type === "user") {
+        await axiosInstance.delete(`/users/${item.id}`);
+        toast.success(`${type} deleted successfully`);
+      }
+      
+      setDeleteConfirmOpen(false);
+      setDeleteTarget(null);
+      loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to delete item");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
