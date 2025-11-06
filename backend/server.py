@@ -621,6 +621,183 @@ async def get_my_access(session_id: str, current_user: User = Depends(get_curren
     access = await get_or_create_participant_access(current_user.id, session_id)
     return access
 
+# Coordinator Control Routes
+@api_router.post("/sessions/{session_id}/release-pre-test")
+async def release_pre_test(session_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role not in ["admin", "coordinator"]:
+        raise HTTPException(status_code=403, detail="Only admins and coordinators can release tests")
+    
+    # Get session to verify it exists
+    session = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    # Update all participant access records for this session
+    result = await db.participant_access.update_many(
+        {"session_id": session_id},
+        {"$set": {"can_access_pre_test": True}}
+    )
+    
+    return {"message": f"Pre-test released to {result.modified_count} participants"}
+
+@api_router.post("/sessions/{session_id}/release-post-test")
+async def release_post_test(session_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role not in ["admin", "coordinator"]:
+        raise HTTPException(status_code=403, detail="Only admins and coordinators can release tests")
+    
+    session = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    result = await db.participant_access.update_many(
+        {"session_id": session_id},
+        {"$set": {"can_access_post_test": True}}
+    )
+    
+    return {"message": f"Post-test released to {result.modified_count} participants"}
+
+@api_router.post("/sessions/{session_id}/release-feedback")
+async def release_feedback(session_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role not in ["admin", "coordinator"]:
+        raise HTTPException(status_code=403, detail="Only admins and coordinators can release feedback")
+    
+    session = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    result = await db.participant_access.update_many(
+        {"session_id": session_id},
+        {"$set": {"can_access_feedback": True}}
+    )
+    
+    return {"message": f"Feedback form released to {result.modified_count} participants"}
+
+@api_router.get("/sessions/{session_id}/status")
+async def get_session_status(session_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role not in ["admin", "coordinator", "trainer"]:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    # Get session
+    session = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    # Get all participant access records
+    access_records = await db.participant_access.find({"session_id": session_id}, {"_id": 0}).to_list(1000)
+    
+    total_participants = len(access_records)
+    pre_test_released = any(a.get('can_access_pre_test', False) for a in access_records)
+    post_test_released = any(a.get('can_access_post_test', False) for a in access_records)
+    feedback_released = any(a.get('can_access_feedback', False) for a in access_records)
+    
+    pre_test_completed = sum(1 for a in access_records if a.get('pre_test_completed', False))
+    post_test_completed = sum(1 for a in access_records if a.get('post_test_completed', False))
+    feedback_submitted = sum(1 for a in access_records if a.get('feedback_submitted', False))
+    
+    return {
+        "session_id": session_id,
+        "session_name": session.get('name', ''),
+        "total_participants": total_participants,
+        "pre_test": {
+            "released": pre_test_released,
+            "completed": pre_test_completed
+        },
+        "post_test": {
+            "released": post_test_released,
+            "completed": post_test_completed
+        },
+        "feedback": {
+            "released": feedback_released,
+            "submitted": feedback_submitted
+        }
+    }
+
+@api_router.get("/sessions/{session_id}/results-summary")
+async def get_results_summary(session_id: str, current_user: User = Depends(get_current_user)):
+    # Check if user has permission (admin, coordinator, or chief trainer)
+    if current_user.role not in ["admin", "coordinator"]:
+        # Check if trainer is chief trainer for this session
+        if current_user.role == "trainer":
+            session = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+            if not session:
+                raise HTTPException(status_code=404, detail="Session not found")
+            
+            # Check if user is a chief trainer in this session
+            is_chief = any(
+                t.get('trainer_id') == current_user.id and t.get('role') == 'chief'
+                for t in session.get('trainer_assignments', [])
+            )
+            if not is_chief:
+                raise HTTPException(status_code=403, detail="Only chief trainers can view results")
+        else:
+            raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    # Get all participants in the session
+    session = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    participant_ids = session.get('participant_ids', [])
+    
+    # Get participant details
+    participants = await db.users.find(
+        {"id": {"$in": participant_ids}},
+        {"_id": 0, "password": 0}
+    ).to_list(1000)
+    
+    # Get test results for all participants
+    test_results = await db.test_results.find(
+        {"session_id": session_id},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Get feedback for all participants
+    feedbacks = await db.feedbacks.find(
+        {"session_id": session_id},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Build summary
+    summary = []
+    for participant in participants:
+        p_results = [r for r in test_results if r['participant_id'] == participant['id']]
+        p_feedback = next((f for f in feedbacks if f['participant_id'] == participant['id']), None)
+        
+        pre_test = next((r for r in p_results if r['test_type'] == 'pre'), None)
+        post_test = next((r for r in p_results if r['test_type'] == 'post'), None)
+        
+        summary.append({
+            "participant": {
+                "id": participant['id'],
+                "name": participant['full_name'],
+                "email": participant['email']
+            },
+            "pre_test": {
+                "completed": pre_test is not None,
+                "score": pre_test['score'] if pre_test else 0,
+                "correct": pre_test['correct_answers'] if pre_test else 0,
+                "total": pre_test['total_questions'] if pre_test else 0,
+                "passed": pre_test['passed'] if pre_test else False,
+                "result_id": pre_test['id'] if pre_test else None
+            },
+            "post_test": {
+                "completed": post_test is not None,
+                "score": post_test['score'] if post_test else 0,
+                "correct": post_test['correct_answers'] if post_test else 0,
+                "total": post_test['total_questions'] if post_test else 0,
+                "passed": post_test['passed'] if post_test else False,
+                "result_id": post_test['id'] if post_test else None
+            },
+            "feedback_submitted": p_feedback is not None
+        })
+    
+    return {
+        "session_id": session_id,
+        "session_name": session.get('name', ''),
+        "program_id": session.get('program_id', ''),
+        "participants": summary
+    }
+
 # User Routes
 @api_router.get("/users", response_model=List[User])
 async def get_users(role: Optional[str] = None, current_user: User = Depends(get_current_user)):
