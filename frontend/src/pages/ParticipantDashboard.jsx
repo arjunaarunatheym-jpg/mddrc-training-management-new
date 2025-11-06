@@ -101,33 +101,27 @@ const ParticipantDashboard = ({ user, onLogout }) => {
   const handleDownloadCertificate = async (sessionId) => {
     try {
       const response = await axiosInstance.post(`/certificates/generate/${sessionId}/${user.id}`);
+      const certificateId = response.data.certificate_id;
       
-      // Use the direct certificate URL instead of download endpoint to avoid auth issues with window.open
-      const certificateUrl = response.data.certificate_url;
-      if (certificateUrl) {
-        window.open(`${process.env.REACT_APP_BACKEND_URL}${certificateUrl}`, '_blank');
-        toast.success("Certificate downloaded!");
-      } else {
-        // Fallback: try to download via authenticated request
-        const downloadResponse = await axiosInstance.get(response.data.download_url, {
-          responseType: 'blob'
-        });
-        
-        // Create blob URL and trigger download
-        const blob = new Blob([downloadResponse.data], {
-          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `certificate_${sessionId}.docx`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        
-        toast.success("Certificate downloaded!");
-      }
+      // Use authenticated download endpoint to trigger proper file download
+      const downloadResponse = await axiosInstance.get(`/certificates/download/${certificateId}`, {
+        responseType: 'blob'
+      });
+      
+      // Create blob URL and trigger download
+      const blob = new Blob([downloadResponse.data], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `certificate_${sessionId}.docx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success("Certificate downloaded successfully!");
     } catch (error) {
       toast.error(error.response?.data?.detail || "Failed to generate certificate");
     }
