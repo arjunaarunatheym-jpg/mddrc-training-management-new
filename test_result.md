@@ -244,6 +244,18 @@ frontend:
         agent: "main"
         comment: "Updated ParticipantDashboard.jsx to show available tests with 'Take Test' buttons and completed test results with ability to view details. Integrated navigation to TakeTest and TestResults pages."
 
+  - task: "Admin Dashboard - Session Delete Functionality"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/AdminDashboard.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added Delete button to Sessions tab. Updated handleConfirmDelete to handle session deletion via DELETE /api/sessions/{session_id}. Sessions can now be deleted from admin dashboard."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
