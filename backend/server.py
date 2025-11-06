@@ -1777,27 +1777,11 @@ async def preview_certificate(certificate_id: str, current_user: User = Depends(
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Certificate file not found")
     
-    # Convert to PDF for preview
-    pdf_filename = filename.replace('.docx', '.pdf')
-    pdf_path = CERTIFICATE_PDF_DIR / pdf_filename
-    
-    # Convert if PDF doesn't exist or is older than docx
-    if not pdf_path.exists() or pdf_path.stat().st_mtime < file_path.stat().st_mtime:
-        try:
-            convert(str(file_path), str(pdf_path))
-        except Exception as e:
-            # If conversion fails, return the docx file instead
-            logging.error(f"PDF conversion failed: {str(e)}")
-            return FileResponse(
-                file_path,
-                media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                headers={"Content-Disposition": "inline"}
-            )
-    
+    # Return the docx file with inline content disposition for browser preview
     return FileResponse(
-        pdf_path,
-        media_type='application/pdf',
-        headers={"Content-Disposition": "inline"}
+        file_path,
+        media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        headers={"Content-Disposition": f"inline; filename={filename}"}
     )
 
 # Static files
