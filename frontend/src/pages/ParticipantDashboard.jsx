@@ -101,50 +101,15 @@ const ParticipantDashboard = ({ user, onLogout }) => {
   const handleDownloadCertificate = async (sessionId) => {
     try {
       const response = await axiosInstance.post(`/certificates/generate/${sessionId}/${user.id}`);
-      const certificateId = response.data.certificate_id;
+      const certificateUrl = response.data.certificate_url;
       
-      // Get auth token
-      const token = localStorage.getItem('token');
+      // Use direct link - simple and reliable
+      window.location.href = `${process.env.REACT_APP_BACKEND_URL}${certificateUrl}`;
       
-      // Download PDF via authenticated fetch
-      const downloadResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/certificates/download/${certificateId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!downloadResponse.ok) {
-        const errorText = await downloadResponse.text();
-        console.error('Download failed:', errorText);
-        throw new Error('Download failed');
-      }
-      
-      // Get the blob from response
-      const blob = await downloadResponse.blob();
-      console.log('Blob size:', blob.size, 'Type:', blob.type);
-      
-      // Create download link with blob URL
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `training_certificate_${sessionId}.pdf`;
-      document.body.appendChild(link);
-      
-      // Trigger download with small delay
-      setTimeout(() => {
-        link.click();
-        toast.success("Certificate PDF downloading! Check your Downloads folder.");
-      }, 100);
-      
-      // Cleanup after a longer delay
-      setTimeout(() => {
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      }, 3000);
+      toast.success("Certificate downloading...");
     } catch (error) {
       console.error('Download error:', error);
-      toast.error(error.message || "Failed to download certificate. Please try again.");
+      toast.error(error.response?.data?.detail || "Failed to download certificate");
     }
   };
 
