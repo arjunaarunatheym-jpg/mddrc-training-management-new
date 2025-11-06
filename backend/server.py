@@ -1127,6 +1127,49 @@ async def verify_checklist(verification: ChecklistVerify, current_user: User = D
     return {"message": "Checklist verified successfully"}
 
 # Course Feedback Routes
+# Feedback Template Routes
+@api_router.post("/feedback-templates", response_model=FeedbackTemplate)
+async def create_feedback_template(template_data: FeedbackTemplateCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can create feedback templates")
+    
+    # Delete existing template for this program
+    await db.feedback_templates.delete_many({"program_id": template_data.program_id})
+    
+    template_obj = FeedbackTemplate(
+        program_id=template_data.program_id,
+        questions=template_data.questions
+    )
+    
+    doc = template_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    
+    await db.feedback_templates.insert_one(doc)
+    
+    return template_obj
+
+@api_router.get("/feedback-templates/program/{program_id}")
+async def get_feedback_template(program_id: str, current_user: User = Depends(get_current_user)):
+    template = await db.feedback_templates.find_one({"program_id": program_id}, {"_id": 0})
+    if not template:
+        raise HTTPException(status_code=404, detail="Feedback template not found for this program")
+    
+    if isinstance(template.get('created_at'), str):
+        template['created_at'] = datetime.fromisoformat(template['created_at'])
+    
+    return template
+
+@api_router.delete("/feedback-templates/{template_id}")
+async def delete_feedback_template(template_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can delete feedback templates")
+    
+    result = await db.feedback_templates.delete_one({"id": template_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Feedback template not found")
+    
+    return {"message": "Feedback template deleted successfully"}
+
 @api_router.post("/feedback/submit", response_model=CourseFeedback)
 async def submit_feedback(feedback_data: FeedbackSubmit, current_user: User = Depends(get_current_user)):
     if current_user.role != "participant":
@@ -1135,12 +1178,8 @@ async def submit_feedback(feedback_data: FeedbackSubmit, current_user: User = De
     feedback_obj = CourseFeedback(
         participant_id=current_user.id,
         session_id=feedback_data.session_id,
-        overall_rating=feedback_data.overall_rating,
-        content_rating=feedback_data.content_rating,
-        trainer_rating=feedback_data.trainer_rating,
-        venue_rating=feedback_data.venue_rating,
-        suggestions=feedback_data.suggestions,
-        comments=feedback_data.comments
+        program_id=feedback_data.program_id,
+        responses=feedback_data.responses
     )
     
     doc = feedback_obj.model_dump()
