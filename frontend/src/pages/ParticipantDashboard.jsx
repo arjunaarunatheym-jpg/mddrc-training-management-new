@@ -129,97 +129,27 @@ const ParticipantDashboard = ({ user, onLogout }) => {
     try {
       // First generate/get the certificate
       const response = await axiosInstance.post(`/certificates/generate/${sessionId}/${user.id}`);
-      const certificateId = response.data.certificate_id;
+      const certificateUrl = response.data.certificate_url;
       
-      // Get auth token
-      const token = localStorage.getItem('token');
+      // Open PDF in new tab - simple and reliable
+      window.open(`${process.env.REACT_APP_BACKEND_URL}${certificateUrl}`, '_blank');
       
-      // Get PDF for preview
-      const previewResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/certificates/preview/${certificateId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!previewResponse.ok) {
-        const errorText = await previewResponse.text();
-        console.error('Preview failed:', errorText);
-        throw new Error('Preview failed');
-      }
-      
-      // Get the blob from response (PDF)
-      const blob = await previewResponse.blob();
-      console.log('Preview blob size:', blob.size, 'Type:', blob.type);
-      
-      // Create blob URL with PDF type
-      const pdfBlob = new Blob([blob], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(pdfBlob);
-      
-      // Open in new tab
-      const newWindow = window.open(url, '_blank');
-      
-      if (!newWindow) {
-        toast.error("Popup blocked! Please allow popups for this site.");
-        return;
-      }
-      
-      // Cleanup after delay
-      setTimeout(() => {
-        window.URL.revokeObjectURL(url);
-      }, 5000);
-      
-      toast.success("Opening certificate preview in new tab...");
+      toast.success("Opening certificate...");
     } catch (error) {
       console.error('Preview error:', error);
-      toast.error(error.message || "Failed to preview certificate");
+      toast.error(error.response?.data?.detail || "Failed to preview certificate");
     }
   };
 
   const handlePreviewExistingCertificate = async (cert) => {
     try {
-      // Get auth token
-      const token = localStorage.getItem('token');
+      // Open PDF in new tab - simple and reliable
+      window.open(`${process.env.REACT_APP_BACKEND_URL}${cert.certificate_url}`, '_blank');
       
-      // Get PDF for preview
-      const previewResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/certificates/preview/${cert.id}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!previewResponse.ok) {
-        const errorText = await previewResponse.text();
-        console.error('Preview failed:', errorText);
-        throw new Error('Preview failed');
-      }
-      
-      // Get the blob from response (PDF)
-      const blob = await previewResponse.blob();
-      console.log('Preview blob size:', blob.size, 'Type:', blob.type);
-      
-      // Create blob URL with PDF type
-      const pdfBlob = new Blob([blob], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(pdfBlob);
-      
-      // Open in new tab
-      const newWindow = window.open(url, '_blank');
-      
-      if (!newWindow) {
-        toast.error("Popup blocked! Please allow popups for this site.");
-        return;
-      }
-      
-      // Cleanup after delay
-      setTimeout(() => {
-        window.URL.revokeObjectURL(url);
-      }, 5000);
-      
-      toast.success("Opening certificate preview in new tab...");
+      toast.success("Opening certificate...");
     } catch (error) {
       console.error('Preview error:', error);
-      toast.error(error.message || "Failed to preview certificate");
+      toast.error("Failed to preview certificate");
     }
   };
 
