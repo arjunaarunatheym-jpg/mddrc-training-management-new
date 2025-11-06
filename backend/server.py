@@ -86,11 +86,13 @@ class Program(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     description: Optional[str] = None
+    pass_percentage: float = 70.0  # Default pass mark
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class ProgramCreate(BaseModel):
     name: str
     description: Optional[str] = None
+    pass_percentage: Optional[float] = 70.0
 
 class Session(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -113,6 +115,29 @@ class SessionCreate(BaseModel):
     start_date: str
     end_date: str
     supervisor_ids: List[str] = []
+    participant_ids: List[str] = []
+
+class ParticipantAccess(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    participant_id: str
+    session_id: str
+    can_access_pre_test: bool = False
+    can_access_post_test: bool = False
+    can_access_checklist: bool = False
+    can_access_feedback: bool = False
+    pre_test_completed: bool = False
+    post_test_completed: bool = False
+    checklist_submitted: bool = False
+    feedback_submitted: bool = False
+
+class UpdateParticipantAccess(BaseModel):
+    participant_id: str
+    session_id: str
+    can_access_pre_test: Optional[bool] = None
+    can_access_post_test: Optional[bool] = None
+    can_access_checklist: Optional[bool] = None
+    can_access_feedback: Optional[bool] = None
 
 class TestQuestion(BaseModel):
     question: str
@@ -138,10 +163,12 @@ class TestResult(BaseModel):
     test_id: str
     participant_id: str
     session_id: str
+    test_type: str
     answers: List[int] = []  # indices of selected answers
     score: float = 0.0
     total_questions: int = 0
     correct_answers: int = 0
+    passed: bool = False
     submitted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class TestSubmit(BaseModel):
@@ -252,6 +279,24 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="Token expired")
     except Exception as e:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+async def get_or_create_participant_access(participant_id: str, session_id: str):
+    access_doc = await db.participant_access.find_one(
+        {"participant_id": participant_id, "session_id": session_id},
+        {"_id": 0}
+    )
+    
+    if not access_doc:
+        # Create default access
+        access_obj = ParticipantAccess(
+            participant_id=participant_id,
+            session_id=session_id
+        )
+        doc = access_obj.model_dump()
+        await db.participant_access.insert_one(doc)
+        return access_obj
+    
+    return ParticipantAccess(**access_doc)
 
 # ============ ROUTES ============
 
@@ -365,6 +410,11 @@ async def create_session(session_data: SessionCreate, current_user: User = Depen
     doc['created_at'] = doc['created_at'].isoformat()
     
     await db.sessions.insert_one(doc)
+    
+    # Create participant access records for all participants
+    for participant_id in session_data.participant_ids:
+        await get_or_create_participant_access(participant_id, session_obj.id)
+    
     return session_obj
 
 @api_router.get("/sessions", response_model=List[Session])
@@ -387,20 +437,63 @@ async def get_sessions(current_user: User = Depends(get_current_user)):
             session['created_at'] = datetime.fromisoformat(session['created_at'])
     return sessions
 
-@api_router.post("/sessions/{session_id}/add-participant")
-async def add_participant_to_session(session_id: str, participant_id: str, current_user: User = Depends(get_current_user)):
+@api_router.get("/sessions/{session_id}/participants")
+async def get_session_participants(session_id: str, current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can add participants")
+        raise HTTPException(status_code=403, detail="Only admins can view participants")
     
-    result = await db.sessions.update_one(
-        {"id": session_id},
-        {"$addToSet": {"participant_ids": participant_id}}
-    )
-    
-    if result.modified_count == 0:
+    session = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     
-    return {"message": "Participant added successfully"}
+    participants = []
+    for participant_id in session['participant_ids']:
+        user_doc = await db.users.find_one({"id": participant_id}, {"_id": 0, "password": 0})
+        if user_doc:
+            if isinstance(user_doc.get('created_at'), str):
+                user_doc['created_at'] = datetime.fromisoformat(user_doc['created_at'])
+            
+            access = await get_or_create_participant_access(participant_id, session_id)
+            
+            participants.append({
+                "user": user_doc,
+                "access": access.model_dump()
+            })
+    
+    return participants
+
+# Participant Access Routes
+@api_router.post("/participant-access/update")
+async def update_participant_access(access_data: UpdateParticipantAccess, current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can update access")
+    
+    access = await get_or_create_participant_access(access_data.participant_id, access_data.session_id)
+    
+    update_fields = {}
+    if access_data.can_access_pre_test is not None:
+        update_fields['can_access_pre_test'] = access_data.can_access_pre_test
+    if access_data.can_access_post_test is not None:
+        update_fields['can_access_post_test'] = access_data.can_access_post_test
+    if access_data.can_access_checklist is not None:
+        update_fields['can_access_checklist'] = access_data.can_access_checklist
+    if access_data.can_access_feedback is not None:
+        update_fields['can_access_feedback'] = access_data.can_access_feedback
+    
+    await db.participant_access.update_one(
+        {"participant_id": access_data.participant_id, "session_id": access_data.session_id},
+        {"$set": update_fields}
+    )
+    
+    return {"message": "Access updated successfully"}
+
+@api_router.get("/participant-access/{session_id}")
+async def get_my_access(session_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role != "participant":
+        raise HTTPException(status_code=403, detail="Only participants can check access")
+    
+    access = await get_or_create_participant_access(current_user.id, session_id)
+    return access
 
 # User Routes
 @api_router.get("/users", response_model=List[User])
@@ -466,25 +559,40 @@ async def submit_test(submission: TestSubmit, current_user: User = Depends(get_c
     if not test_doc:
         raise HTTPException(status_code=404, detail="Test not found")
     
+    # Get program for pass percentage
+    program_doc = await db.programs.find_one({"id": test_doc['program_id']}, {"_id": 0})
+    pass_percentage = program_doc.get('pass_percentage', 70.0) if program_doc else 70.0
+    
     # Calculate score
     questions = test_doc['questions']
     correct = sum(1 for i, ans in enumerate(submission.answers) if i < len(questions) and ans == questions[i]['correct_answer'])
     score = (correct / len(questions)) * 100 if questions else 0
+    passed = score >= pass_percentage
     
     result_obj = TestResult(
         test_id=submission.test_id,
         participant_id=current_user.id,
         session_id=submission.session_id,
+        test_type=test_doc['test_type'],
         answers=submission.answers,
         score=score,
         total_questions=len(questions),
-        correct_answers=correct
+        correct_answers=correct,
+        passed=passed
     )
     
     doc = result_obj.model_dump()
     doc['submitted_at'] = doc['submitted_at'].isoformat()
     
     await db.test_results.insert_one(doc)
+    
+    # Update participant access
+    update_field = 'pre_test_completed' if test_doc['test_type'] == 'pre' else 'post_test_completed'
+    await db.participant_access.update_one(
+        {"participant_id": current_user.id, "session_id": submission.session_id},
+        {"$set": {update_field: True}}
+    )
+    
     return result_obj
 
 @api_router.get("/tests/results/participant/{participant_id}", response_model=List[TestResult])
@@ -554,6 +662,13 @@ async def submit_checklist(checklist_data: ChecklistSubmit, current_user: User =
         doc['verified_at'] = doc['verified_at'].isoformat()
     
     await db.vehicle_checklists.insert_one(doc)
+    
+    # Update participant access
+    await db.participant_access.update_one(
+        {"participant_id": current_user.id, "session_id": checklist_data.session_id},
+        {"$set": {"checklist_submitted": True}}
+    )
+    
     return checklist_obj
 
 @api_router.get("/checklists/participant/{participant_id}", response_model=List[VehicleChecklist])
@@ -618,6 +733,13 @@ async def submit_feedback(feedback_data: FeedbackSubmit, current_user: User = De
     doc['submitted_at'] = doc['submitted_at'].isoformat()
     
     await db.course_feedback.insert_one(doc)
+    
+    # Update participant access
+    await db.participant_access.update_one(
+        {"participant_id": current_user.id, "session_id": feedback_data.session_id},
+        {"$set": {"feedback_submitted": True}}
+    )
+    
     return feedback_obj
 
 @api_router.get("/feedback/session/{session_id}", response_model=List[CourseFeedback])
