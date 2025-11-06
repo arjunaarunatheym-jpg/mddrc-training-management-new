@@ -129,31 +129,25 @@ const ParticipantDashboard = ({ user, onLogout }) => {
 
   const handleDownloadExistingCertificate = async (cert) => {
     try {
-      // Use the direct certificate URL if available
-      if (cert.certificate_url) {
-        window.open(`${process.env.REACT_APP_BACKEND_URL}${cert.certificate_url}`, '_blank');
-        toast.success("Certificate downloaded!");
-      } else {
-        // Fallback: use the download endpoint with authenticated request
-        const downloadResponse = await axiosInstance.get(`/certificates/download/${cert.id}`, {
-          responseType: 'blob'
-        });
-        
-        // Create blob URL and trigger download
-        const blob = new Blob([downloadResponse.data], {
-          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `certificate_${cert.session_id}.docx`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        
-        toast.success("Certificate downloaded!");
-      }
+      // Use the download endpoint with authenticated request for proper file download
+      const downloadResponse = await axiosInstance.get(`/certificates/download/${cert.id}`, {
+        responseType: 'blob'
+      });
+      
+      // Create blob URL and trigger download
+      const blob = new Blob([downloadResponse.data], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `certificate_${cert.session_id}.docx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success("Certificate downloaded successfully!");
     } catch (error) {
       toast.error(error.response?.data?.detail || "Failed to download certificate");
     }
