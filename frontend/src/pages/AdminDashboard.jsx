@@ -16,6 +16,7 @@ import Settings from "./Settings";
 import { useTheme } from "../context/ThemeContext";
 
 const AdminDashboard = ({ user, onLogout }) => {
+  const { primaryColor, secondaryColor } = useTheme();
   const [companies, setCompanies] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [sessions, setSessions] = useState([]);
