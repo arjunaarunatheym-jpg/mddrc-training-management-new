@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { LogOut, Building2, Users, Calendar, MessageSquare, BookOpen, Plus, Trash2, Edit, UserPlus, UserCog, ClipboardList, Settings as SettingsIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import TestManagement from "./TestManagement";
+import FeedbackManagement from "./FeedbackManagement";
 import Settings from "./Settings";
 
 const AdminDashboard = ({ user, onLogout }) => {
