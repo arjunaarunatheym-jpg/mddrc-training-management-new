@@ -361,8 +361,8 @@ class TestRunner:
         self.log("Logging in as participant...")
         
         login_data = {
-            "email": "testparticipant@example.com",
-            "password": "participant123"
+            "email": "maaman@gmail.com",
+            "password": "mddrc1"
         }
         
         try:
