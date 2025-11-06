@@ -37,26 +37,21 @@ const TrainerDashboard = ({ user, onLogout }) => {
 
   const loadSessionParticipants = async (sessionId) => {
     try {
-      const response = await axiosInstance.get(`/sessions/${sessionId}`);
-      const session = response.data;
+      // Get assigned participants for this trainer
+      const response = await axiosInstance.get(`/trainer-checklist/${sessionId}/assigned-participants`);
+      const participants = response.data;
       
-      // Get participant details
-      if (session.participant_ids && session.participant_ids.length > 0) {
-        const participantsPromises = session.participant_ids.map(pid =>
-          axiosInstance.get(`/users/${pid}`).catch(() => null)
-        );
-        const participantsResponses = await Promise.all(participantsPromises);
-        const participants = participantsResponses
-          .filter(r => r !== null)
-          .map(r => r.data);
-        
-        setSessionParticipants(prev => ({
-          ...prev,
-          [sessionId]: participants
-        }));
-      }
+      setSessionParticipants(prev => ({
+        ...prev,
+        [sessionId]: participants
+      }));
     } catch (error) {
-      console.error("Failed to load participants for session", sessionId);
+      console.error("Failed to load assigned participants for session", sessionId, error);
+      // Set empty array if no participants assigned
+      setSessionParticipants(prev => ({
+        ...prev,
+        [sessionId]: []
+      }));
     }
   };
 
