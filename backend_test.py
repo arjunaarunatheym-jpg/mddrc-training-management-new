@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-Backend Test Suite for Defensive Driving Training Management System
-Tests the test management endpoints: POST /api/tests, GET /api/tests/program/{program_id}, DELETE /api/tests/{test_id}
+Backend Test Suite for Defensive Driving Training Management System - Phase 1
+Tests the test management endpoints and participant test-taking functionality:
+- POST /api/tests, GET /api/tests/program/{program_id}, DELETE /api/tests/{test_id}
+- GET /api/sessions/{session_id}/tests/available
+- GET /api/tests/results/{result_id}
+- POST /api/tests/submit
+- Security and access control testing
 """
 
 import requests
