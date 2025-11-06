@@ -583,6 +583,10 @@ async def get_sessions(current_user: User = Depends(get_current_user)):
             {"participant_ids": current_user.id},
             {"_id": 0}
         ).to_list(1000)
+        
+        # Auto-create participant_access records for each session
+        for session in sessions:
+            await get_or_create_participant_access(current_user.id, session['id'])
     elif current_user.role == "supervisor":
         sessions = await db.sessions.find(
             {"supervisor_ids": current_user.id},
