@@ -314,25 +314,49 @@ const TrainerChecklist = ({ user }) => {
         </div>
 
         {/* Submit Button */}
-        <div className="mt-6">
-          <Card className="bg-gradient-to-r from-green-50 to-teal-50">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold">Ready to submit?</p>
-                  <p className="text-sm text-gray-600">Your name will be automatically signed upon submission</p>
+        {!isCompleted && (
+          <div className="mt-6">
+            <Card className="bg-gradient-to-r from-green-50 to-teal-50">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold">Ready to submit?</p>
+                    <p className="text-sm text-gray-600">Your name will be automatically signed upon submission</p>
+                  </div>
+                  <Button 
+                    onClick={handleSubmit}
+                    disabled={submitting || checklistItems.length === 0}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {submitting ? "Submitting..." : "Submit Checklist"}
+                  </Button>
                 </div>
-                <Button 
-                  onClick={handleSubmit}
-                  disabled={submitting || checklistItems.length === 0}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {submitting ? "Submitting..." : "Submit Checklist"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+        
+        {isCompleted && (
+          <div className="mt-6">
+            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-blue-900">This checklist has been completed</p>
+                    <p className="text-sm text-blue-700">Verified by: {existingChecklist?.verified_by || 'System'}</p>
+                  </div>
+                  <Button 
+                    onClick={() => navigate('/trainer-dashboard')}
+                    variant="outline"
+                    className="border-blue-500 text-blue-700 hover:bg-blue-50"
+                  >
+                    Back to Dashboard
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );
