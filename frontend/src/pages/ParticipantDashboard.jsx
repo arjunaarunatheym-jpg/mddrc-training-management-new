@@ -328,6 +328,130 @@ const ParticipantDashboard = ({ user, onLogout }) => {
             </Card>
           </TabsContent>
 
+          {/* My Details */}
+          <TabsContent value="details">
+            {sessions.length === 0 ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>My Details</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-500 text-center py-8">No sessions assigned yet</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {sessions.map((session) => {
+                  const vehicleInfo = vehicleDetails[session.id];
+                  const attendance = attendanceToday[session.id] || {};
+
+                  return (
+                    <Card key={session.id}>
+                      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
+                        <CardTitle>{session.name}</CardTitle>
+                        <CardDescription>
+                          {session.start_date} to {session.end_date} • {session.location}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-6 space-y-6">
+                        {/* Attendance */}
+                        <div>
+                          <h3 className="font-semibold text-gray-900 mb-3">Attendance</h3>
+                          <div className="flex gap-3">
+                            <Button
+                              onClick={() => handleClockIn(session.id)}
+                              disabled={attendance.clock_in}
+                              className="bg-green-600 hover:bg-green-700"
+                              data-testid={`clock-in-${session.id}`}
+                            >
+                              <Clock className="w-4 h-4 mr-2" />
+                              {attendance.clock_in ? "Clocked In ✓" : "Clock In"}
+                            </Button>
+                            <Button
+                              onClick={() => handleClockOut(session.id)}
+                              disabled={!attendance.clock_in || attendance.clock_out}
+                              variant="outline"
+                              data-testid={`clock-out-${session.id}`}
+                            >
+                              <Clock className="w-4 h-4 mr-2" />
+                              {attendance.clock_out ? "Clocked Out ✓" : "Clock Out"}
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Vehicle Details */}
+                        <div>
+                          <h3 className="font-semibold text-gray-900 mb-3">Vehicle Details</h3>
+                          {vehicleInfo ? (
+                            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                              <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                  <p className="text-sm text-gray-600">Vehicle Model</p>
+                                  <p className="font-medium">{vehicleInfo.vehicle_model}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-gray-600">Registration No.</p>
+                                  <p className="font-medium">{vehicleInfo.registration_number}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-gray-600">Roadtax Expiry</p>
+                                  <p className="font-medium">{vehicleInfo.roadtax_expiry}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                              <p className="text-sm text-yellow-800 mb-3">Please provide your vehicle details</p>
+                              <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                  <Label htmlFor="vehicle_model">Vehicle Model</Label>
+                                  <Input
+                                    id="vehicle_model"
+                                    value={vehicleForm.vehicle_model}
+                                    onChange={(e) => setVehicleForm({ ...vehicleForm, vehicle_model: e.target.value })}
+                                    placeholder="e.g., Honda City"
+                                    data-testid={`vehicle-model-${session.id}`}
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="registration_number">Registration Number</Label>
+                                  <Input
+                                    id="registration_number"
+                                    value={vehicleForm.registration_number}
+                                    onChange={(e) => setVehicleForm({ ...vehicleForm, registration_number: e.target.value })}
+                                    placeholder="e.g., ABC 1234"
+                                    data-testid={`registration-${session.id}`}
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="roadtax_expiry">Roadtax Expiry</Label>
+                                  <Input
+                                    id="roadtax_expiry"
+                                    type="date"
+                                    value={vehicleForm.roadtax_expiry}
+                                    onChange={(e) => setVehicleForm({ ...vehicleForm, roadtax_expiry: e.target.value })}
+                                    data-testid={`roadtax-${session.id}`}
+                                  />
+                                </div>
+                              </div>
+                              <Button
+                                onClick={() => handleVehicleSubmit(session.id)}
+                                className="w-full"
+                                data-testid={`submit-vehicle-${session.id}`}
+                              >
+                                Save Vehicle Details
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
           {/* Tests */}
           <TabsContent value="tests">
             {/* Available Tests */}
