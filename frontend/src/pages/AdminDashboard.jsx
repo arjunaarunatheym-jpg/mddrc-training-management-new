@@ -449,19 +449,33 @@ const AdminDashboard = ({ user, onLogout }) => {
                         data-testid={`program-item-${program.id}`}
                         className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg hover:shadow-md transition-shadow"
                       >
-                        <div>
-                          <h3 className="font-semibold text-gray-900">{program.name}</h3>
-                          {program.description && (
-                            <p className="text-sm text-gray-600 mt-1">{program.description}</p>
-                          )}
-                          <div className="flex gap-3 mt-2">
-                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                              Pass Mark: {program.pass_percentage}%
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              Created: {new Date(program.created_at).toLocaleDateString()}
-                            </span>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900">{program.name}</h3>
+                            {program.description && (
+                              <p className="text-sm text-gray-600 mt-1">{program.description}</p>
+                            )}
+                            <div className="flex gap-3 mt-2">
+                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                Pass Mark: {program.pass_percentage}%
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                Created: {new Date(program.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
                           </div>
+                          <Button
+                            data-testid={`manage-tests-${program.id}`}
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setActiveTab("tests");
+                              setSelectedProgram(program);
+                            }}
+                          >
+                            <ClipboardList className="w-4 h-4 mr-1" />
+                            Manage Tests
+                          </Button>
                         </div>
                       </div>
                     ))
