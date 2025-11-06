@@ -471,14 +471,24 @@ const ParticipantDashboard = ({ user, onLogout }) => {
                               </p>
                             </div>
                           </div>
-                          <Button
-                            onClick={() => handleDownloadExistingCertificate(cert)}
-                            className="bg-yellow-600 hover:bg-yellow-700 text-white"
-                            data-testid={`download-cert-${cert.id}`}
-                          >
-                            <Download className="w-4 h-4 mr-2" />
-                            Download
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => handlePreviewExistingCertificate(cert)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                              data-testid={`preview-cert-${cert.id}`}
+                            >
+                              <Eye className="w-4 h-4 mr-2" />
+                              Preview
+                            </Button>
+                            <Button
+                              onClick={() => handleDownloadExistingCertificate(cert)}
+                              className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                              data-testid={`download-cert-${cert.id}`}
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Download
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))}
