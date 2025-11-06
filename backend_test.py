@@ -1334,6 +1334,17 @@ class TestRunner:
             ("Login Second Participant", self.login_second_participant),
             ("Get Other Participant Result (403)", self.test_get_other_participant_result),
             ("Completed Test Not in Available", self.test_completed_test_not_in_available),
+            
+            # Session Delete Functionality Tests
+            ("Create Session Delete Test Data", self.create_session_delete_test_data),
+            ("Create Session for Delete Test", self.create_session_for_delete_test),
+            ("Verify Participant Access Created", self.verify_participant_access_created),
+            ("Delete Session as Admin", self.test_delete_session_as_admin),
+            ("Verify Session Deleted", self.verify_session_deleted),
+            ("Verify Participant Access Cascade Deleted", self.verify_participant_access_deleted),
+            ("Delete Non-existent Session (404)", self.test_delete_nonexistent_session),
+            ("Create Second Session for Non-Admin Test", self.create_second_session_for_non_admin_test),
+            ("Delete Session as Participant (403)", self.test_delete_session_as_participant),
         ]
         
         for test_name, test_func in tests:
