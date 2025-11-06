@@ -673,11 +673,11 @@ async def get_available_tests(session_id: str, current_user: User = Depends(get_
         is_completed = False
         
         if test_type == "pre":
-            can_access = access.get('can_access_pre_test', False)
-            is_completed = access.get('pre_test_completed', False)
+            can_access = access.can_access_pre_test
+            is_completed = access.pre_test_completed
         elif test_type == "post":
-            can_access = access.get('can_access_post_test', False)
-            is_completed = access.get('post_test_completed', False)
+            can_access = access.can_access_post_test
+            is_completed = access.post_test_completed
         
         if can_access and not is_completed:
             # Don't send correct answers to participant
