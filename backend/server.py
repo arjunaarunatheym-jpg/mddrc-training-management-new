@@ -1231,12 +1231,188 @@ async def update_settings(settings_data: SettingsUpdate, current_user: User = De
         settings['updated_at'] = datetime.fromisoformat(settings['updated_at'])
     return Settings(**settings)
 
+# Certificate Template Upload
+@api_router.post("/settings/upload-certificate-template")
+async def upload_certificate_template(file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can upload templates")
+    
+    if not file.filename.endswith('.docx'):
+        raise HTTPException(status_code=400, detail="Only .docx files are supported")
+    
+    filename = "certificate_template.docx"
+    file_path = TEMPLATE_DIR / filename
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    template_url = f"/api/static/templates/{filename}"
+    
+    await db.settings.update_one(
+        {"id": "app_settings"},
+        {"$set": {"certificate_template_url": template_url, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    
+    return {"template_url": template_url, "message": "Certificate template uploaded successfully"}
+
+# Generate Certificate
+@api_router.post("/certificates/generate/{session_id}/{participant_id}")
+async def generate_certificate(session_id: str, participant_id: str, current_user: User = Depends(get_current_user)):
+    # Only admin can generate, or participant can generate their own
+    if current_user.role != "admin" and current_user.id != participant_id:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    # Check if feedback is submitted (required for certificate)
+    access = await db.participant_access.find_one(
+        {"participant_id": participant_id, "session_id": session_id},
+        {"_id": 0}
+    )
+    
+    if not access or not access.get('feedback_submitted', False):
+        raise HTTPException(status_code=400, detail="Feedback must be submitted before generating certificate")
+    
+    # Get participant details
+    participant = await db.users.find_one({"id": participant_id}, {"_id": 0})
+    if not participant:
+        raise HTTPException(status_code=404, detail="Participant not found")
+    
+    # Get session details
+    session = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    # Get program details
+    program = await db.programs.find_one({"id": session['program_id']}, {"_id": 0})
+    program_name = program['name'] if program else "Training Program"
+    
+    # Get company details
+    company = await db.companies.find_one({"id": session['company_id']}, {"_id": 0})
+    company_name = company['name'] if company else ""
+    
+    # Get settings for company name
+    settings = await db.settings.find_one({"id": "app_settings"}, {"_id": 0})
+    conducting_company = settings.get('company_name', 'Malaysian Defensive Driving and Riding Centre Sdn Bhd') if settings else 'Malaysian Defensive Driving and Riding Centre Sdn Bhd'
+    
+    # Load template
+    template_path = TEMPLATE_DIR / "certificate_template.docx"
+    if not template_path.exists():
+        raise HTTPException(status_code=404, detail="Certificate template not found. Please upload a template first.")
+    
+    # Create document from template
+    doc = Document(template_path)
+    
+    # Replace placeholders in paragraphs
+    replacements = {
+        '«PARTICIPANT_NAME»': participant['full_name'],
+        '«IC_NUMBER»': participant['id_number'],
+        '«COMPANY_NAME»': company_name,
+        '«PROGRAMME NAME»': program_name,
+        '«VENUE»': session['location'],
+        '«DATE»': session['end_date']
+    }
+    
+    # Replace in paragraphs
+    for paragraph in doc.paragraphs:
+        for key, value in replacements.items():
+            if key in paragraph.text:
+                paragraph.text = paragraph.text.replace(key, value)
+    
+    # Replace in tables
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for key, value in replacements.items():
+                    if key in cell.text:
+                        cell.text = cell.text.replace(key, value)
+    
+    # Save as new document
+    cert_filename = f"certificate_{participant_id}_{session_id}.docx"
+    cert_path = CERTIFICATE_DIR / cert_filename
+    doc.save(cert_path)
+    
+    # Store certificate record
+    cert_url = f"/api/static/certificates/{cert_filename}"
+    
+    # Check if certificate already exists
+    existing_cert = await db.certificates.find_one({
+        "participant_id": participant_id,
+        "session_id": session_id
+    }, {"_id": 0})
+    
+    if existing_cert:
+        # Update existing
+        await db.certificates.update_one(
+            {"id": existing_cert['id']},
+            {"$set": {
+                "certificate_url": cert_url,
+                "issue_date": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        cert_id = existing_cert['id']
+    else:
+        # Create new
+        cert_obj = Certificate(
+            participant_id=participant_id,
+            session_id=session_id,
+            program_name=program_name,
+            certificate_url=cert_url
+        )
+        doc_cert = cert_obj.model_dump()
+        doc_cert['issue_date'] = doc_cert['issue_date'].isoformat()
+        await db.certificates.insert_one(doc_cert)
+        cert_id = cert_obj.id
+    
+    return {
+        "certificate_id": cert_id,
+        "certificate_url": cert_url,
+        "download_url": f"/api/certificates/download/{cert_id}",
+        "message": "Certificate generated successfully"
+    }
+
+@api_router.get("/certificates/download/{certificate_id}")
+async def download_certificate(certificate_id: str, current_user: User = Depends(get_current_user)):
+    cert = await db.certificates.find_one({"id": certificate_id}, {"_id": 0})
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+    
+    # Only participant or admin can download
+    if current_user.role != "admin" and current_user.id != cert['participant_id']:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    cert_url = cert['certificate_url']
+    filename = cert_url.split('/')[-1]
+    file_path = CERTIFICATE_DIR / filename
+    
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Certificate file not found")
+    
+    return FileResponse(
+        file_path,
+        media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        filename=filename
+    )
+
 # Static files
 @api_router.get("/static/logos/{filename}")
 async def get_logo(filename: str):
     file_path = LOGO_DIR / filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Logo not found")
+    return FileResponse(file_path)
+
+@api_router.get("/static/certificates/{filename}")
+async def get_certificate(filename: str):
+    file_path = CERTIFICATE_DIR / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Certificate not found")
+    return FileResponse(file_path)
+
+@api_router.get("/static/templates/{filename}")
+async def get_template(filename: str):
+    file_path = TEMPLATE_DIR / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Template not found")
     return FileResponse(file_path)
 
 # Include router
