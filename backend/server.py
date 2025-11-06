@@ -635,6 +635,18 @@ async def get_tests_by_program(program_id: str, current_user: User = Depends(get
             test['created_at'] = datetime.fromisoformat(test['created_at'])
     return tests
 
+@api_router.delete("/tests/{test_id}")
+async def delete_test(test_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can delete tests")
+    
+    result = await db.tests.delete_one({"id": test_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Test not found")
+    
+    return {"message": "Test deleted successfully"}
+
 @api_router.get("/tests/{test_id}")
 async def get_test(test_id: str, current_user: User = Depends(get_current_user)):
     test_doc = await db.tests.find_one({"id": test_id}, {"_id": 0})
