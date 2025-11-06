@@ -44,17 +44,41 @@ const Login = ({ onLogin }) => {
     }
   };
 
+  const primaryColor = settings?.primary_color || "#3b82f6";
+  const secondaryColor = settings?.secondary_color || "#6366f1";
+  const companyName = settings?.company_name || "Malaysian Defensive Driving and Riding Centre Sdn Bhd";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background: `linear-gradient(to bottom right, ${primaryColor}15, ${secondaryColor}15, ${primaryColor}10)`
+      }}
+    >
       <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
       
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl mb-4 shadow-lg">
-            <Shield className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-            Defensive Driving
+          {settings?.logo_url ? (
+            <div className="inline-flex items-center justify-center mb-4">
+              <img
+                src={`${process.env.REACT_APP_BACKEND_URL}${settings.logo_url}`}
+                alt="Company Logo"
+                className="h-20 object-contain"
+              />
+            </div>
+          ) : (
+            <div 
+              className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-lg"
+              style={{
+                background: `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor})`
+              }}
+            >
+              <Shield className="w-8 h-8 text-white" />
+            </div>
+          )}
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+            {companyName}
           </h1>
           <p className="text-gray-600">Training Management System</p>
         </div>
