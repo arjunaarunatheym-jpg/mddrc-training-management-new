@@ -8,8 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { LogOut, Building2, Users, Calendar, ClipboardList, MessageSquare, BookOpen, Settings, Plus, Trash2 } from "lucide-react";
+import { LogOut, Building2, Users, Calendar, ClipboardList, MessageSquare, BookOpen, Settings, Plus, Trash2, Edit, UserPlus } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const AdminDashboard = ({ user, onLogout }) => {
   const [companies, setCompanies] = useState([]);
@@ -23,10 +24,10 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
 
   // Program form
-  const [programForm, setProgramForm] = useState({ name: "", description: "" });
+  const [programForm, setProgramForm] = useState({ name: "", description: "", pass_percentage: 70 });
   const [programDialogOpen, setProgramDialogOpen] = useState(false);
 
-  // Session form with participants
+  // Session form
   const [sessionForm, setSessionForm] = useState({
     program_id: "",
     company_id: "",
@@ -44,6 +45,18 @@ const AdminDashboard = ({ user, onLogout }) => {
     location: "",
   });
   const [sessionDialogOpen, setSessionDialogOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState(null);
+  const [editSessionDialogOpen, setEditSessionDialogOpen] = useState(false);
+
+  // Trainer form
+  const [trainerForm, setTrainerForm] = useState({
+    email: "",
+    password: "",
+    full_name: "",
+    id_number: "",
+    trainer_role: "trainer", // trainer, chief_trainer, coordinator
+  });
+  const [trainerDialogOpen, setTrainerDialogOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -84,11 +97,33 @@ const AdminDashboard = ({ user, onLogout }) => {
     try {
       await axiosInstance.post("/programs", programForm);
       toast.success("Program created successfully");
-      setProgramForm({ name: "", description: "" });
+      setProgramForm({ name: "", description: "", pass_percentage: 70 });
       setProgramDialogOpen(false);
       loadData();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Failed to create program");
+    }
+  };
+
+  const handleCreateTrainer = async (e) => {
+    e.preventDefault();
+    try {
+      await axiosInstance.post("/auth/register", {
+        ...trainerForm,
+        role: trainerForm.trainer_role,
+      });
+      toast.success("Trainer created successfully");
+      setTrainerForm({
+        email: "",
+        password: "",
+        full_name: "",
+        id_number: "",
+        trainer_role: "trainer",
+      });
+      setTrainerDialogOpen(false);
+      loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to create trainer");
     }
   };
 
@@ -119,14 +154,12 @@ const AdminDashboard = ({ user, onLogout }) => {
     }
 
     try {
-      // Get program name for session name
       const program = programs.find(p => p.id === sessionForm.program_id);
       if (!program) {
         toast.error("Please select a program");
         return;
       }
 
-      // Create all participants first
       const participantIds = [];
       for (const participant of sessionForm.participants) {
         try {
@@ -143,7 +176,6 @@ const AdminDashboard = ({ user, onLogout }) => {
         }
       }
 
-      // Create session with program name
       await axiosInstance.post("/sessions", {
         name: program.name,
         program_id: sessionForm.program_id,
@@ -172,11 +204,28 @@ const AdminDashboard = ({ user, onLogout }) => {
     }
   };
 
+  const handleEditSession = (session) => {
+    setEditingSession(session);
+    setEditSessionDialogOpen(true);
+  };
+
+  const handleUpdateSession = async () => {
+    try {
+      await axiosInstance.put(`/sessions/${editingSession.id}`, editingSession);
+      toast.success("Session updated successfully");
+      setEditSessionDialogOpen(false);
+      setEditingSession(null);
+      loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to update session");
+    }
+  };
+
+  const trainers = users.filter((u) => u.role === "trainer" || u.role === "chief_trainer" || u.role === "coordinator");
   const supervisors = users.filter((u) => u.role === "supervisor");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div>
@@ -195,10 +244,9 @@ const AdminDashboard = ({ user, onLogout }) => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-8">
+          <TabsList className="grid w-full grid-cols-6 mb-8">
             <TabsTrigger value="programs" data-testid="programs-tab">
               <BookOpen className="w-4 h-4 mr-2" />
               Programs
@@ -210,6 +258,10 @@ const AdminDashboard = ({ user, onLogout }) => {
             <TabsTrigger value="sessions" data-testid="sessions-tab">
               <Calendar className="w-4 h-4 mr-2" />
               Sessions
+            </TabsTrigger>
+            <TabsTrigger value="trainers" data-testid="trainers-tab">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Trainers
             </TabsTrigger>
             <TabsTrigger value="users" data-testid="users-tab">
               <Users className="w-4 h-4 mr-2" />
@@ -266,6 +318,19 @@ const AdminDashboard = ({ user, onLogout }) => {
                             onChange={(e) => setProgramForm({ ...programForm, description: e.target.value })}
                           />
                         </div>
+                        <div>
+                          <Label htmlFor="pass-percentage">Pass Percentage (%)</Label>
+                          <Input
+                            id="pass-percentage"
+                            data-testid="pass-percentage-input"
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={programForm.pass_percentage}
+                            onChange={(e) => setProgramForm({ ...programForm, pass_percentage: parseFloat(e.target.value) })}
+                            required
+                          />
+                        </div>
                         <Button data-testid="submit-program-button" type="submit" className="w-full">
                           Create Program
                         </Button>
@@ -293,9 +358,14 @@ const AdminDashboard = ({ user, onLogout }) => {
                           {program.description && (
                             <p className="text-sm text-gray-600 mt-1">{program.description}</p>
                           )}
-                          <p className="text-xs text-gray-500 mt-2">
-                            Created: {new Date(program.created_at).toLocaleDateString()}
-                          </p>
+                          <div className="flex gap-3 mt-2">
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                              Pass Mark: {program.pass_percentage}%
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              Created: {new Date(program.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     ))
@@ -379,7 +449,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 <div className="flex justify-between items-center">
                   <div>
                     <CardTitle>Training Sessions</CardTitle>
-                    <CardDescription>Create sessions with participants</CardDescription>
+                    <CardDescription>Create and manage sessions</CardDescription>
                   </div>
                   <Dialog open={sessionDialogOpen} onOpenChange={setSessionDialogOpen}>
                     <DialogTrigger asChild>
@@ -396,7 +466,6 @@ const AdminDashboard = ({ user, onLogout }) => {
                         </DialogDescription>
                       </DialogHeader>
                       <form onSubmit={handleCreateSession} className="space-y-6">
-                        {/* Session Details */}
                         <div className="space-y-4">
                           <h3 className="font-semibold text-lg">Session Details</h3>
                           <div>
@@ -473,7 +542,6 @@ const AdminDashboard = ({ user, onLogout }) => {
                           </div>
                         </div>
 
-                        {/* Add Participants */}
                         <div className="space-y-4 border-t pt-4">
                           <h3 className="font-semibold text-lg">Add Participants</h3>
                           <div className="grid grid-cols-2 gap-3">
@@ -532,7 +600,6 @@ const AdminDashboard = ({ user, onLogout }) => {
                           </Button>
                         </div>
 
-                        {/* Participants List */}
                         {sessionForm.participants.length > 0 && (
                           <div className="space-y-2 border-t pt-4">
                             <h3 className="font-semibold text-sm text-gray-700">
@@ -612,10 +679,19 @@ const AdminDashboard = ({ user, onLogout }) => {
                                   </p>
                                 </div>
                               </div>
-                              <div className="text-right">
+                              <div className="flex flex-col gap-2 items-end">
                                 <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
                                   {session.participant_ids.length} Participants
                                 </span>
+                                <Button
+                                  data-testid={`edit-session-${session.id}`}
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditSession(session)}
+                                >
+                                  <Edit className="w-4 h-4 mr-1" />
+                                  Edit
+                                </Button>
                               </div>
                             </div>
                           </div>
@@ -624,6 +700,127 @@ const AdminDashboard = ({ user, onLogout }) => {
                     )}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Trainers Tab */}
+          <TabsContent value="trainers">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Trainers</CardTitle>
+                    <CardDescription>Manage training staff</CardDescription>
+                  </div>
+                  <Dialog open={trainerDialogOpen} onOpenChange={setTrainerDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button data-testid="create-trainer-button">
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Add Trainer
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create New Trainer</DialogTitle>
+                        <DialogDescription>
+                          Add a trainer, chief trainer, or coordinator
+                        </DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={handleCreateTrainer} className="space-y-4">
+                        <div>
+                          <Label htmlFor="trainer-name">Full Name *</Label>
+                          <Input
+                            id="trainer-name"
+                            data-testid="trainer-name-input"
+                            value={trainerForm.full_name}
+                            onChange={(e) => setTrainerForm({ ...trainerForm, full_name: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="trainer-id">ID Number *</Label>
+                          <Input
+                            id="trainer-id"
+                            data-testid="trainer-id-input"
+                            value={trainerForm.id_number}
+                            onChange={(e) => setTrainerForm({ ...trainerForm, id_number: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="trainer-email">Email *</Label>
+                          <Input
+                            id="trainer-email"
+                            data-testid="trainer-email-input"
+                            type="email"
+                            value={trainerForm.email}
+                            onChange={(e) => setTrainerForm({ ...trainerForm, email: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="trainer-password">Password *</Label>
+                          <Input
+                            id="trainer-password"
+                            data-testid="trainer-password-input"
+                            type="password"
+                            value={trainerForm.password}
+                            onChange={(e) => setTrainerForm({ ...trainerForm, password: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="trainer-role">Trainer Role *</Label>
+                          <Select
+                            value={trainerForm.trainer_role}
+                            onValueChange={(value) => setTrainerForm({ ...trainerForm, trainer_role: value })}
+                          >
+                            <SelectTrigger data-testid="trainer-role-select">
+                              <SelectValue placeholder="Select role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="trainer">Regular Trainer</SelectItem>
+                              <SelectItem value="chief_trainer">Chief Trainer</SelectItem>
+                              <SelectItem value="coordinator">Coordinator</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button data-testid="submit-trainer-button" type="submit" className="w-full">
+                          Create Trainer
+                        </Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {trainers.length === 0 ? (
+                    <p className="text-gray-500 text-center py-8">No trainers yet</p>
+                  ) : (
+                    trainers.map((trainer) => (
+                      <div
+                        key={trainer.id}
+                        data-testid={`trainer-item-${trainer.id}`}
+                        className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg hover:bg-orange-100 transition-colors"
+                      >
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{trainer.full_name}</h3>
+                          <p className="text-sm text-gray-600">{trainer.email}</p>
+                          <div className="flex gap-2 mt-2">
+                            <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded capitalize">
+                              {trainer.role.replace('_', ' ')}
+                            </span>
+                            <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
+                              ID: {trainer.id_number}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -650,8 +847,8 @@ const AdminDashboard = ({ user, onLogout }) => {
                           <h3 className="font-semibold text-gray-900">{u.full_name}</h3>
                           <p className="text-sm text-gray-600">{u.email}</p>
                           <div className="flex gap-2 mt-1">
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                              {u.role}
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded capitalize">
+                              {u.role.replace('_', ' ')}
                             </span>
                             <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
                               ID: {u.id_number}
@@ -680,6 +877,50 @@ const AdminDashboard = ({ user, onLogout }) => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Edit Session Dialog */}
+      {editingSession && (
+        <Dialog open={editSessionDialogOpen} onOpenChange={setEditSessionDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Session</DialogTitle>
+              <DialogDescription>
+                Update session details
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Location</Label>
+                <Input
+                  value={editingSession.location}
+                  onChange={(e) => setEditingSession({ ...editingSession, location: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Start Date</Label>
+                  <Input
+                    type="date"
+                    value={editingSession.start_date}
+                    onChange={(e) => setEditingSession({ ...editingSession, start_date: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>End Date</Label>
+                  <Input
+                    type="date"
+                    value={editingSession.end_date}
+                    onChange={(e) => setEditingSession({ ...editingSession, end_date: e.target.value })}
+                  />
+                </div>
+              </div>
+              <Button onClick={handleUpdateSession} className="w-full">
+                Update Session
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
