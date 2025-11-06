@@ -290,7 +290,7 @@ const Settings = () => {
       <Card>
         <CardHeader>
           <CardTitle>Company Details</CardTitle>
-          <CardDescription>Configure company information</CardDescription>
+          <CardDescription>Company name appears on login page and in certificates</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
