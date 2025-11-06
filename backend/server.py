@@ -256,13 +256,18 @@ class Settings(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = "app_settings"
     logo_url: Optional[str] = None
+    company_name: str = "Malaysian Defensive Driving and Riding Centre Sdn Bhd"
     primary_color: str = "#3b82f6"
     secondary_color: str = "#6366f1"
+    footer_text: str = ""
+    certificate_template_url: Optional[str] = None
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class SettingsUpdate(BaseModel):
+    company_name: Optional[str] = None
     primary_color: Optional[str] = None
     secondary_color: Optional[str] = None
+    footer_text: Optional[str] = None
 
 # ============ HELPER FUNCTIONS ============
 
