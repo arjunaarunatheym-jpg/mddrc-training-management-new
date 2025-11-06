@@ -140,63 +140,46 @@ const FeedbackForm = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Overall Rating */}
-            <RatingStars
-              label="Overall Training Experience"
-              value={feedback.overall_rating}
-              field="overall_rating"
-            />
-
-            {/* Content Rating */}
-            <RatingStars
-              label="Training Content Quality"
-              value={feedback.content_rating}
-              field="content_rating"
-            />
-
-            {/* Trainer Rating */}
-            <RatingStars
-              label="Trainer Effectiveness"
-              value={feedback.trainer_rating}
-              field="trainer_rating"
-            />
-
-            {/* Venue Rating */}
-            <RatingStars
-              label="Venue & Facilities"
-              value={feedback.venue_rating}
-              field="venue_rating"
-            />
-
-            {/* Suggestions */}
-            <div className="space-y-2">
-              <Label htmlFor="suggestions" className="text-base font-medium">
-                Suggestions for Improvement
-              </Label>
-              <Textarea
-                id="suggestions"
-                value={feedback.suggestions}
-                onChange={(e) => setFeedback({ ...feedback, suggestions: e.target.value })}
-                placeholder="What could we do better? Any suggestions?"
-                rows={4}
-                data-testid="suggestions-input"
-              />
-            </div>
-
-            {/* Comments */}
-            <div className="space-y-2">
-              <Label htmlFor="comments" className="text-base font-medium">
-                Additional Comments
-              </Label>
-              <Textarea
-                id="comments"
-                value={feedback.comments}
-                onChange={(e) => setFeedback({ ...feedback, comments: e.target.value })}
-                placeholder="Any other feedback you'd like to share?"
-                rows={4}
-                data-testid="comments-input"
-              />
-            </div>
+            {template?.questions.map((question, index) => (
+              <div key={index} className="space-y-2">
+                <Label className="text-base font-medium">
+                  {question.question}
+                  {question.required && <span className="text-red-500 ml-1">*</span>}
+                </Label>
+                
+                {question.type === "rating" ? (
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => handleResponseChange(index, star)}
+                        className="transition-transform hover:scale-110"
+                        type="button"
+                      >
+                        <Star
+                          className={`w-8 h-8 ${
+                            star <= responses[index]
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "text-gray-300"
+                          }`}
+                        />
+                      </button>
+                    ))}
+                    <span className="ml-2 text-gray-600">
+                      {responses[index] > 0 ? `${responses[index]}/5` : "Not rated"}
+                    </span>
+                  </div>
+                ) : (
+                  <Textarea
+                    value={responses[index] || ""}
+                    onChange={(e) => handleResponseChange(index, e.target.value)}
+                    placeholder="Enter your response..."
+                    rows={4}
+                    data-testid={`response-${index}`}
+                  />
+                )}
+              </div>
+            ))}
 
             {/* Submit Button */}
             <div className="pt-4">
