@@ -267,7 +267,6 @@ metadata:
 
 test_plan:
   current_focus:
-    - "DELETE endpoint for sessions"
     - "Admin Dashboard - Session Delete Functionality"
     - "Participant Test-Taking Interface"
     - "Test Results Display"
