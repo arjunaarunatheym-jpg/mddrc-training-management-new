@@ -8,10 +8,12 @@ import { toast } from "sonner";
 import { LogOut, FileText, ClipboardCheck, MessageSquare, Award, Play } from "lucide-react";
 
 const ParticipantDashboard = ({ user, onLogout }) => {
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState([]);
   const [certificates, setCertificates] = useState([]);
   const [testResults, setTestResults] = useState([]);
   const [checklists, setChecklists] = useState([]);
+  const [availableTests, setAvailableTests] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -29,9 +31,35 @@ const ParticipantDashboard = ({ user, onLogout }) => {
       setCertificates(certsRes.data);
       setTestResults(resultsRes.data);
       setChecklists(checklistsRes.data);
+      
+      // Load available tests for each session
+      loadAvailableTests(sessionsRes.data);
     } catch (error) {
       toast.error("Failed to load dashboard data");
     }
+  };
+
+  const loadAvailableTests = async (sessionsList) => {
+    try {
+      const testsPromises = sessionsList.map(session =>
+        axiosInstance.get(`/sessions/${session.id}/tests/available`)
+          .then(res => res.data.map(test => ({ ...test, session_id: session.id, session_name: session.name })))
+          .catch(() => [])
+      );
+      const testsArrays = await Promise.all(testsPromises);
+      const allTests = testsArrays.flat();
+      setAvailableTests(allTests);
+    } catch (error) {
+      console.error("Failed to load available tests");
+    }
+  };
+
+  const handleTakeTest = (testId, sessionId) => {
+    navigate(`/take-test/${testId}/${sessionId}`);
+  };
+
+  const handleViewResult = (resultId) => {
+    navigate(`/test-results/${resultId}`);
   };
 
   return (
