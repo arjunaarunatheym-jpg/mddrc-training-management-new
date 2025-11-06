@@ -312,7 +312,6 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Certificate preview functionality"
     - "Certificate preview UI integration"
   stuck_tasks: []
   test_all: false
