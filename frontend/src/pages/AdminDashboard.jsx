@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { LogOut, Building2, Users, Calendar, MessageSquare, BookOpen, Plus, Trash2, Edit, UserPlus, UserCog, ClipboardList } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import TestManagement from "./TestManagement";
 
 const AdminDashboard = ({ user, onLogout }) => {
   const [companies, setCompanies] = useState([]);
