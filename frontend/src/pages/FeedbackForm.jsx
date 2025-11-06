@@ -26,20 +26,38 @@ const FeedbackForm = () => {
       const sessionResponse = await axiosInstance.get(`/sessions/${sessionId}`);
       setSession(sessionResponse.data);
       
-      // Load feedback template for the program
-      const templateResponse = await axiosInstance.get(`/feedback-templates/program/${sessionResponse.data.program_id}`);
-      setTemplate(templateResponse.data);
+      // Try to load feedback template for the program
+      let feedbackTemplate = null;
+      try {
+        const templateResponse = await axiosInstance.get(`/feedback-templates/program/${sessionResponse.data.program_id}`);
+        feedbackTemplate = templateResponse.data;
+      } catch (templateError) {
+        // No custom template, use default questions
+        feedbackTemplate = {
+          program_id: sessionResponse.data.program_id,
+          questions: [
+            { question: "Overall Training Experience", type: "rating", required: true },
+            { question: "Training Content Quality", type: "rating", required: true },
+            { question: "Trainer Effectiveness", type: "rating", required: true },
+            { question: "Venue & Facilities", type: "rating", required: true },
+            { question: "Suggestions for Improvement", type: "text", required: false },
+            { question: "Additional Comments", type: "text", required: false }
+          ]
+        };
+      }
+      
+      setTemplate(feedbackTemplate);
       
       // Initialize responses
       const initialResponses = {};
-      templateResponse.data.questions.forEach((q, index) => {
+      feedbackTemplate.questions.forEach((q, index) => {
         initialResponses[index] = q.type === "rating" ? 0 : "";
       });
       setResponses(initialResponses);
       
       setLoading(false);
     } catch (error) {
-      toast.error("Failed to load feedback form");
+      toast.error("Failed to load session details");
       navigate("/participant");
     }
   };
