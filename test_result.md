@@ -180,6 +180,18 @@ backend:
         agent: "testing"
         comment: "✅ GET /api/tests/results/{result_id} endpoint fully tested and working. Returns detailed test results with complete question data including correct answers. Participants can only access their own results (403 for others). Returns 404 for non-existent results. Includes test_questions array with all question details and correct answers for review. All security and functionality tests passed."
 
+  - task: "DELETE endpoint for sessions"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added DELETE /api/sessions/{session_id} endpoint. Admin-only access. Deletes session and cascades to delete related participant_access records. Returns 404 if not found, 403 for non-admin."
+
 frontend:
   - task: "Test Management UI - Add/Edit/Delete Questions"
     implemented: true
