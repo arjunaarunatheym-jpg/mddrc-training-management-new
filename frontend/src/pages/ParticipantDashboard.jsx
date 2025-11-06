@@ -33,10 +33,26 @@ const ParticipantDashboard = ({ user, onLogout }) => {
       setTestResults(resultsRes.data);
       setChecklists(checklistsRes.data);
       
-      // Load available tests for each session
+      // Load available tests and access for each session
       loadAvailableTests(sessionsRes.data);
+      loadParticipantAccess(sessionsRes.data);
     } catch (error) {
       toast.error("Failed to load dashboard data");
+    }
+  };
+
+  const loadParticipantAccess = async (sessionsList) => {
+    try {
+      const accessPromises = sessionsList.map(session =>
+        axiosInstance.get(`/participant-access/${session.id}`)
+          .then(res => ({ [session.id]: res.data }))
+          .catch(() => ({ [session.id]: {} }))
+      );
+      const accessArrays = await Promise.all(accessPromises);
+      const allAccess = accessArrays.reduce((acc, curr) => ({ ...acc, ...curr }), {});
+      setParticipantAccess(allAccess);
+    } catch (error) {
+      console.error("Failed to load participant access");
     }
   };
 
