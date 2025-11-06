@@ -101,3 +101,74 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Defensive Driving/Riding Training Management System with test question management. Admin can create pre/post test questions (same questions, post-test shuffles them), define correct answers, and participants see immediate results."
+
+backend:
+  - task: "DELETE endpoint for test questions"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "DELETE endpoint already implemented at line 638-648. Endpoint: DELETE /api/tests/{test_id}. Validates admin role, deletes test from database, returns success/error. Ready for testing."
+
+  - task: "POST endpoint for creating tests"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST endpoint exists at line 618. Creates tests with program_id, test_type (pre/post), and questions list. Needs testing."
+
+  - task: "GET endpoint for fetching tests by program"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET endpoint exists at line 630. Fetches all tests for a program. Used by frontend to load questions. Needs testing."
+
+frontend:
+  - task: "Test Management UI - Add/Edit/Delete Questions"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/TestManagement.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "TestManagement.jsx component exists with full CRUD. Can add/edit/delete questions, set correct answers, manage options. Frontend calls DELETE /api/tests/{test_id} at line 97. Will test after backend validation."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "DELETE endpoint for test questions"
+    - "POST endpoint for creating tests"
+    - "GET endpoint for fetching tests by program"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Initial test state created. Delete endpoint for tests was already implemented in server.py. Frontend is already integrated and using the endpoint. Need to validate all test-related endpoints (POST, GET, DELETE) work correctly with proper authentication and data handling. Testing backend first, then will verify frontend flow."
