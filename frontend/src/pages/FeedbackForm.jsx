@@ -12,17 +12,10 @@ const FeedbackForm = () => {
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const [session, setSession] = useState(null);
+  const [template, setTemplate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  
-  const [feedback, setFeedback] = useState({
-    overall_rating: 0,
-    content_rating: 0,
-    trainer_rating: 0,
-    venue_rating: 0,
-    suggestions: "",
-    comments: ""
-  });
+  const [responses, setResponses] = useState({});
 
   useEffect(() => {
     loadSession();
@@ -30,11 +23,23 @@ const FeedbackForm = () => {
 
   const loadSession = async () => {
     try {
-      const response = await axiosInstance.get(`/sessions/${sessionId}`);
-      setSession(response.data);
+      const sessionResponse = await axiosInstance.get(`/sessions/${sessionId}`);
+      setSession(sessionResponse.data);
+      
+      // Load feedback template for the program
+      const templateResponse = await axiosInstance.get(`/feedback-templates/program/${sessionResponse.data.program_id}`);
+      setTemplate(templateResponse.data);
+      
+      // Initialize responses
+      const initialResponses = {};
+      templateResponse.data.questions.forEach((q, index) => {
+        initialResponses[index] = q.type === "rating" ? 0 : "";
+      });
+      setResponses(initialResponses);
+      
       setLoading(false);
     } catch (error) {
-      toast.error("Failed to load session details");
+      toast.error("Failed to load feedback form");
       navigate("/participant");
     }
   };
