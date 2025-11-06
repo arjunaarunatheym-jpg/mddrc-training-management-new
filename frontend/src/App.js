@@ -154,6 +154,26 @@ function App() {
             }
           />
           <Route
+            path="/trainer-checklist/:sessionId/:participantId"
+            element={
+              user && user.role === "trainer" ? (
+                <TrainerChecklist user={user} />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="/trainer-dashboard"
+            element={
+              user && user.role === "trainer" ? (
+                <TrainerDashboard user={user} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
             path="/coordinator"
             element={
               user && user.role === "coordinator" ? (
