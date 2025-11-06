@@ -1391,6 +1391,11 @@ const AdminDashboard = ({ user, onLogout }) => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings">
+            <Settings />
+          </TabsContent>
         </Tabs>
       </main>
 
