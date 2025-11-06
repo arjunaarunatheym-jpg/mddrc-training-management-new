@@ -407,6 +407,17 @@ const AdminDashboard = ({ user, onLogout }) => {
     }
   };
 
+  const handleToggleUserStatus = async (userId, currentStatus) => {
+    try {
+      const endpoint = currentStatus ? "deactivate" : "activate";
+      await axiosInstance.put(`/users/${userId}/${endpoint}`);
+      toast.success(`User ${currentStatus ? 'deactivated' : 'activated'} successfully`);
+      loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to update user status");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
