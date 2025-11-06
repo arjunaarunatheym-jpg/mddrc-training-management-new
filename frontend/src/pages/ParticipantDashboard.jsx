@@ -14,6 +14,7 @@ const ParticipantDashboard = ({ user, onLogout }) => {
   const [testResults, setTestResults] = useState([]);
   const [checklists, setChecklists] = useState([]);
   const [availableTests, setAvailableTests] = useState([]);
+  const [participantAccess, setParticipantAccess] = useState({});
 
   useEffect(() => {
     loadData();
