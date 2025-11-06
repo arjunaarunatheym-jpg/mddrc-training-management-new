@@ -1,5 +1,6 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -12,6 +13,8 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from passlib.context import CryptContext
 import jwt
+import random
+import shutil
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -30,6 +33,12 @@ ALGORITHM = "HS256"
 # Create the main app
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
+
+# Static files directory
+STATIC_DIR = ROOT_DIR / "static"
+STATIC_DIR.mkdir(exist_ok=True)
+LOGO_DIR = STATIC_DIR / "logos"
+LOGO_DIR.mkdir(exist_ok=True)
 
 # ============ MODELS ============
 
@@ -72,10 +81,22 @@ class Company(BaseModel):
 class CompanyCreate(BaseModel):
     name: str
 
+class Program(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ProgramCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+
 class Session(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
+    program_id: str
     company_id: str
     location: str
     start_date: str
@@ -86,38 +107,58 @@ class Session(BaseModel):
 
 class SessionCreate(BaseModel):
     name: str
+    program_id: str
     company_id: str
     location: str
     start_date: str
     end_date: str
     supervisor_ids: List[str] = []
 
+class TestQuestion(BaseModel):
+    question: str
+    options: List[str]
+    correct_answer: int  # index of correct option
+
 class Test(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    session_id: str
+    program_id: str
     test_type: str  # pre or post
-    questions: List[dict] = []  # {question: str, options: List[str], correct_answer: int}
+    questions: List[TestQuestion] = []
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class TestCreate(BaseModel):
-    session_id: str
+    program_id: str
     test_type: str
-    questions: List[dict]
+    questions: List[TestQuestion]
 
 class TestResult(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     test_id: str
     participant_id: str
+    session_id: str
     answers: List[int] = []  # indices of selected answers
     score: float = 0.0
     total_questions: int = 0
+    correct_answers: int = 0
     submitted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class TestSubmit(BaseModel):
     test_id: str
+    session_id: str
     answers: List[int]
+
+class ChecklistTemplate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    program_id: str
+    items: List[str] = []  # List of checklist item descriptions
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ChecklistTemplateCreate(BaseModel):
+    program_id: str
+    items: List[str]
 
 class VehicleChecklist(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -160,8 +201,21 @@ class Certificate(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     participant_id: str
     session_id: str
+    program_name: str
     issue_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     certificate_url: Optional[str] = None
+
+class Settings(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = "app_settings"
+    logo_url: Optional[str] = None
+    primary_color: str = "#3b82f6"  # default blue
+    secondary_color: str = "#6366f1"  # default indigo
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class SettingsUpdate(BaseModel):
+    primary_color: Optional[str] = None
+    secondary_color: Optional[str] = None
 
 # ============ HELPER FUNCTIONS ============
 
@@ -208,16 +262,13 @@ async def root():
 # Auth Routes
 @api_router.post("/auth/register", response_model=User)
 async def register_user(user_data: UserCreate, current_user: User = Depends(get_current_user)):
-    # Only admin can create users
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only admins can create users")
     
-    # Check if user exists
     existing = await db.users.find_one({"email": user_data.email}, {"_id": 0})
     if existing:
         raise HTTPException(status_code=400, detail="User already exists")
     
-    # Hash password and create user
     hashed_pw = hash_password(user_data.password)
     user_obj = User(
         email=user_data.email,
@@ -282,6 +333,27 @@ async def get_companies(current_user: User = Depends(get_current_user)):
             company['created_at'] = datetime.fromisoformat(company['created_at'])
     return companies
 
+# Program Routes
+@api_router.post("/programs", response_model=Program)
+async def create_program(program_data: ProgramCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can create programs")
+    
+    program_obj = Program(**program_data.model_dump())
+    doc = program_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    
+    await db.programs.insert_one(doc)
+    return program_obj
+
+@api_router.get("/programs", response_model=List[Program])
+async def get_programs(current_user: User = Depends(get_current_user)):
+    programs = await db.programs.find({}, {"_id": 0}).to_list(1000)
+    for program in programs:
+        if isinstance(program.get('created_at'), str):
+            program['created_at'] = datetime.fromisoformat(program['created_at'])
+    return programs
+
 # Session Routes
 @api_router.post("/sessions", response_model=Session)
 async def create_session(session_data: SessionCreate, current_user: User = Depends(get_current_user)):
@@ -298,19 +370,16 @@ async def create_session(session_data: SessionCreate, current_user: User = Depen
 @api_router.get("/sessions", response_model=List[Session])
 async def get_sessions(current_user: User = Depends(get_current_user)):
     if current_user.role == "participant":
-        # Participants only see their sessions
         sessions = await db.sessions.find(
             {"participant_ids": current_user.id},
             {"_id": 0}
         ).to_list(1000)
     elif current_user.role == "supervisor":
-        # Supervisors see sessions they're assigned to
         sessions = await db.sessions.find(
             {"supervisor_ids": current_user.id},
             {"_id": 0}
         ).to_list(1000)
     else:
-        # Admins see all
         sessions = await db.sessions.find({}, {"_id": 0}).to_list(1000)
     
     for session in sessions:
@@ -362,13 +431,30 @@ async def create_test(test_data: TestCreate, current_user: User = Depends(get_cu
     await db.tests.insert_one(doc)
     return test_obj
 
-@api_router.get("/tests/session/{session_id}", response_model=List[Test])
-async def get_tests_by_session(session_id: str, current_user: User = Depends(get_current_user)):
-    tests = await db.tests.find({"session_id": session_id}, {"_id": 0}).to_list(100)
+@api_router.get("/tests/program/{program_id}", response_model=List[Test])
+async def get_tests_by_program(program_id: str, current_user: User = Depends(get_current_user)):
+    tests = await db.tests.find({"program_id": program_id}, {"_id": 0}).to_list(100)
     for test in tests:
         if isinstance(test.get('created_at'), str):
             test['created_at'] = datetime.fromisoformat(test['created_at'])
     return tests
+
+@api_router.get("/tests/{test_id}")
+async def get_test(test_id: str, current_user: User = Depends(get_current_user)):
+    test_doc = await db.tests.find_one({"id": test_id}, {"_id": 0})
+    if not test_doc:
+        raise HTTPException(status_code=404, detail="Test not found")
+    
+    if isinstance(test_doc.get('created_at'), str):
+        test_doc['created_at'] = datetime.fromisoformat(test_doc['created_at'])
+    
+    # For post tests, shuffle questions for participants
+    if current_user.role == "participant" and test_doc['test_type'] == "post":
+        questions = test_doc['questions']
+        random.shuffle(questions)
+        test_doc['questions'] = questions
+    
+    return test_doc
 
 @api_router.post("/tests/submit", response_model=TestResult)
 async def submit_test(submission: TestSubmit, current_user: User = Depends(get_current_user)):
@@ -388,9 +474,11 @@ async def submit_test(submission: TestSubmit, current_user: User = Depends(get_c
     result_obj = TestResult(
         test_id=submission.test_id,
         participant_id=current_user.id,
+        session_id=submission.session_id,
         answers=submission.answers,
         score=score,
-        total_questions=len(questions)
+        total_questions=len(questions),
+        correct_answers=correct
     )
     
     doc = result_obj.model_dump()
@@ -409,6 +497,43 @@ async def get_participant_results(participant_id: str, current_user: User = Depe
         if isinstance(result.get('submitted_at'), str):
             result['submitted_at'] = datetime.fromisoformat(result['submitted_at'])
     return results
+
+# Checklist Template Routes
+@api_router.post("/checklist-templates", response_model=ChecklistTemplate)
+async def create_checklist_template(template_data: ChecklistTemplateCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can create checklist templates")
+    
+    # Check if template exists for this program
+    existing = await db.checklist_templates.find_one({"program_id": template_data.program_id}, {"_id": 0})
+    if existing:
+        # Update existing
+        await db.checklist_templates.update_one(
+            {"program_id": template_data.program_id},
+            {"$set": {"items": template_data.items}}
+        )
+        existing['items'] = template_data.items
+        if isinstance(existing.get('created_at'), str):
+            existing['created_at'] = datetime.fromisoformat(existing['created_at'])
+        return ChecklistTemplate(**existing)
+    
+    template_obj = ChecklistTemplate(**template_data.model_dump())
+    doc = template_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    
+    await db.checklist_templates.insert_one(doc)
+    return template_obj
+
+@api_router.get("/checklist-templates/program/{program_id}", response_model=ChecklistTemplate)
+async def get_checklist_template(program_id: str, current_user: User = Depends(get_current_user)):
+    template = await db.checklist_templates.find_one({"program_id": program_id}, {"_id": 0})
+    if not template:
+        # Return empty template
+        return ChecklistTemplate(program_id=program_id, items=[])
+    
+    if isinstance(template.get('created_at'), str):
+        template['created_at'] = datetime.fromisoformat(template['created_at'])
+    return ChecklistTemplate(**template)
 
 # Vehicle Checklist Routes
 @api_router.post("/checklists/submit", response_model=VehicleChecklist)
@@ -511,11 +636,9 @@ async def get_company_feedback(company_id: str, current_user: User = Depends(get
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only admins can view company feedback")
     
-    # Get all sessions for the company
     sessions = await db.sessions.find({"company_id": company_id}, {"_id": 0}).to_list(1000)
     session_ids = [s['id'] for s in sessions]
     
-    # Get feedback for all sessions
     feedback = await db.course_feedback.find({"session_id": {"$in": session_ids}}, {"_id": 0}).to_list(1000)
     for fb in feedback:
         if isinstance(fb.get('submitted_at'), str):
@@ -534,6 +657,73 @@ async def get_participant_certificates(participant_id: str, current_user: User =
         if isinstance(cert.get('issue_date'), str):
             cert['issue_date'] = datetime.fromisoformat(cert['issue_date'])
     return certificates
+
+# Settings Routes
+@api_router.get("/settings", response_model=Settings)
+async def get_settings():
+    settings = await db.settings.find_one({"id": "app_settings"}, {"_id": 0})
+    if not settings:
+        # Return defaults
+        default_settings = Settings()
+        doc = default_settings.model_dump()
+        doc['updated_at'] = doc['updated_at'].isoformat()
+        await db.settings.insert_one(doc)
+        return default_settings
+    
+    if isinstance(settings.get('updated_at'), str):
+        settings['updated_at'] = datetime.fromisoformat(settings['updated_at'])
+    return Settings(**settings)
+
+@api_router.post("/settings/upload-logo")
+async def upload_logo(file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can update settings")
+    
+    # Save file
+    file_ext = file.filename.split(".")[-1]
+    filename = f"logo.{file_ext}"
+    file_path = LOGO_DIR / filename
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    logo_url = f"/api/static/logos/{filename}"
+    
+    # Update settings
+    await db.settings.update_one(
+        {"id": "app_settings"},
+        {"$set": {"logo_url": logo_url, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    
+    return {"logo_url": logo_url}
+
+@api_router.put("/settings", response_model=Settings)
+async def update_settings(settings_data: SettingsUpdate, current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can update settings")
+    
+    update_data = {k: v for k, v in settings_data.model_dump().items() if v is not None}
+    update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    await db.settings.update_one(
+        {"id": "app_settings"},
+        {"$set": update_data},
+        upsert=True
+    )
+    
+    settings = await db.settings.find_one({"id": "app_settings"}, {"_id": 0})
+    if isinstance(settings.get('updated_at'), str):
+        settings['updated_at'] = datetime.fromisoformat(settings['updated_at'])
+    return Settings(**settings)
+
+# Static files
+@api_router.get("/static/logos/{filename}")
+async def get_logo(filename: str):
+    file_path = LOGO_DIR / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Logo not found")
+    return FileResponse(file_path)
 
 # Include router
 app.include_router(api_router)
