@@ -206,6 +206,16 @@ function App() {
               )
             }
           />
+          <Route
+            path="/feedback/:sessionId"
+            element={
+              user && user.role === "participant" ? (
+                <FeedbackForm />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
         </Routes>
       </BrowserRouter>
       <Toaster position="top-right" />
