@@ -1107,8 +1107,12 @@ async def submit_feedback(feedback_data: FeedbackSubmit, current_user: User = De
     feedback_obj = CourseFeedback(
         participant_id=current_user.id,
         session_id=feedback_data.session_id,
-        rating=feedback_data.rating,
-        feedback_text=feedback_data.feedback_text
+        overall_rating=feedback_data.overall_rating,
+        content_rating=feedback_data.content_rating,
+        trainer_rating=feedback_data.trainer_rating,
+        venue_rating=feedback_data.venue_rating,
+        suggestions=feedback_data.suggestions,
+        comments=feedback_data.comments
     )
     
     doc = feedback_obj.model_dump()
