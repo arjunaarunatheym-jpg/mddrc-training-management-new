@@ -218,10 +218,11 @@ function App() {
               )
             }
           />
-        </Routes>
-      </BrowserRouter>
-      <Toaster position="top-right" />
-    </div>
+          </Routes>
+        </BrowserRouter>
+        <Toaster position="top-right" />
+      </div>
+    </ThemeProvider>
   );
 }
 
