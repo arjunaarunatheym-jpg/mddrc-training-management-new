@@ -210,6 +210,18 @@ backend:
         agent: "testing"
         comment: "🎉 CERTIFICATE GENERATION FLOW WORKING PERFECTLY! All 14/14 tests passed. ✅ Phase 1: Admin setup (program, company, session, participant) - WORKING. ✅ Phase 2: Participant access auto-creation and default values - WORKING. ✅ Phase 3: Feedback release and submission with feedback_submitted flag update - WORKING. ✅ Phase 4: Certificate generation with valid URLs, file download (1.4MB .docx), and document validation - WORKING. Certificate template exists, generation endpoint functional, download URLs accessible, files are valid Word documents. Minor: Generated certificate appears to have placeholder content but file structure is correct."
 
+  - task: "Certificate preview functionality"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added new endpoint GET /api/certificates/preview/{certificate_id} that serves the certificate .docx file with inline content-disposition header for browser preview. Returns FileResponse with proper authentication. Frontend updated with handlePreviewCertificate and handlePreviewExistingCertificate functions that fetch blob via authenticated request and open in new tab. Added Preview buttons (blue with Eye icon) in both Overview tab and Certificates tab, alongside Download buttons. Preview uses blob URL creation for authenticated file access. Ready for testing."
+
 frontend:
   - task: "Test Management UI - Add/Edit/Delete Questions"
     implemented: true
