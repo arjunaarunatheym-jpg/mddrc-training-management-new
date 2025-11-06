@@ -125,7 +125,10 @@ const Login = ({ onLogin }) => {
               <Button
                 data-testid="login-submit-button"
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium py-2.5 rounded-lg shadow-lg transition-all duration-200"
+                className="w-full text-white font-medium py-2.5 rounded-lg shadow-lg transition-all duration-200"
+                style={{
+                  background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`,
+                }}
                 disabled={loading}
               >
                 {loading ? "Signing in..." : "Sign In"}
