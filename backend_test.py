@@ -1411,7 +1411,7 @@ class TestRunner:
             response = self.session.post(f"{BASE_URL}/certificates/generate/{self.cert_session_id}/{self.cert_participant_id}", headers=admin_headers)
             if response.status_code == 200:
                 cert_data = response.json()
-                self.test_certificate_id = cert_data['id']
+                self.test_certificate_id = cert_data['certificate_id']
                 self.log(f"✅ Test certificate generated. ID: {self.test_certificate_id}")
                 return True
             else:
