@@ -542,6 +542,55 @@ class TestRunner:
             self.log(f"❌ Participant access update error: {str(e)}", "ERROR")
             return False
     
+    def create_fresh_pre_test(self):
+        """Create a fresh pre-test for participant testing"""
+        self.log("Creating fresh pre-test for participant testing...")
+        
+        if not self.admin_token or not self.test_program_id:
+            self.log("❌ Missing admin token or program ID", "ERROR")
+            return False
+            
+        headers = {'Authorization': f'Bearer {self.admin_token}'}
+        
+        test_data = {
+            "program_id": self.test_program_id,
+            "test_type": "pre",
+            "questions": [
+                {
+                    "question": "What is the recommended following distance in good weather conditions?",
+                    "options": ["1 second", "2 seconds", "3 seconds", "4 seconds"],
+                    "correct_answer": 2
+                },
+                {
+                    "question": "When should you check your mirrors while driving?",
+                    "options": ["Only when changing lanes", "Every 5-8 seconds", "Only when parking", "Once per trip"],
+                    "correct_answer": 1
+                },
+                {
+                    "question": "What does defensive driving primarily focus on?",
+                    "options": ["Speed", "Anticipating hazards", "Fuel efficiency", "Vehicle maintenance"],
+                    "correct_answer": 1
+                }
+            ]
+        }
+        
+        try:
+            response = self.session.post(f"{BASE_URL}/tests", json=test_data, headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                test_id = data['id']
+                self.created_test_ids.append(test_id)
+                self.log(f"✅ Fresh pre-test created successfully. ID: {test_id}")
+                return True
+            else:
+                self.log(f"❌ Fresh pre-test creation failed: {response.status_code} - {response.text}", "ERROR")
+                return False
+                
+        except Exception as e:
+            self.log(f"❌ Fresh pre-test creation error: {str(e)}", "ERROR")
+            return False
+    
     def test_get_available_tests_as_participant(self):
         """Test GET /api/sessions/{session_id}/tests/available as participant"""
         self.log("Testing GET /api/sessions/{session_id}/tests/available as participant...")
