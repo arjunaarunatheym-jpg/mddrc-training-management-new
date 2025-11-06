@@ -30,35 +30,58 @@ const TrainerChecklist = ({ user }) => {
       setLoading(true);
       
       // Load participant details
+      console.log('Loading participant:', participantId);
       const participantRes = await axiosInstance.get(`/users/${participantId}`);
+      console.log('Participant loaded:', participantRes.data);
       setParticipant(participantRes.data);
       
       // Load vehicle details
-      const vehicleRes = await axiosInstance.get(`/vehicle-details/${sessionId}/${participantId}`);
-      setVehicle(vehicleRes.data);
+      console.log('Loading vehicle details for session:', sessionId, 'participant:', participantId);
+      try {
+        const vehicleRes = await axiosInstance.get(`/vehicle-details/${sessionId}/${participantId}`);
+        console.log('Vehicle loaded:', vehicleRes.data);
+        setVehicle(vehicleRes.data);
+      } catch (vehicleError) {
+        console.error('Vehicle details not found:', vehicleError);
+        toast.error("Participant hasn't entered vehicle details yet");
+        setVehicle({ 
+          registration_number: 'Not provided', 
+          vehicle_model: 'Not provided', 
+          roadtax_expiry: 'Not provided' 
+        });
+      }
       
       // Load session to get program_id
+      console.log('Loading session:', sessionId);
       const sessionRes = await axiosInstance.get(`/sessions/${sessionId}`);
       const programId = sessionRes.data.program_id;
+      console.log('Program ID:', programId);
       
       // Load checklist template
+      console.log('Loading checklist template for program:', programId);
       const templateRes = await axiosInstance.get(`/checklist-templates/program/${programId}`);
+      console.log('Template loaded:', templateRes.data);
       setTemplate(templateRes.data);
       
       // Initialize checklist items
       if (templateRes.data.items && templateRes.data.items.length > 0) {
-        setChecklistItems(templateRes.data.items.map(item => ({
+        const items = templateRes.data.items.map(item => ({
           item: item,
           status: "good",
           comments: "",
           photo_url: null
-        })));
+        }));
+        console.log('Initialized checklist items:', items);
+        setChecklistItems(items);
+      } else {
+        toast.error("No checklist template found for this program");
       }
       
       setLoading(false);
     } catch (error) {
       console.error('Load error:', error);
-      toast.error("Failed to load checklist data");
+      console.error('Error response:', error.response?.data);
+      toast.error(error.response?.data?.detail || "Failed to load checklist data");
       setLoading(false);
     }
   };
