@@ -93,7 +93,12 @@ const TrainerDashboard = ({ user, onLogout }) => {
                         data-testid={`session-${session.id}`}
                         className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg hover:shadow-md transition-shadow"
                       >
-                        <h3 className="font-semibold text-gray-900">{session.name}</h3>
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-semibold text-gray-900">{session.name}</h3>
+                          <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-medium">
+                            {getMyRole(session)}
+                          </span>
+                        </div>
                         <div className="mt-2 text-sm text-gray-600 space-y-1">
                           <p>Location: {session.location}</p>
                           <p>
