@@ -48,15 +48,23 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [editingSession, setEditingSession] = useState(null);
   const [editSessionDialogOpen, setEditSessionDialogOpen] = useState(false);
 
-  // Trainer form
+  // Trainer form (no role - just create trainer account)
   const [trainerForm, setTrainerForm] = useState({
     email: "",
     password: "",
     full_name: "",
     id_number: "",
-    trainer_role: "trainer", // trainer, chief_trainer, coordinator
   });
   const [trainerDialogOpen, setTrainerDialogOpen] = useState(false);
+
+  // Coordinator form
+  const [coordinatorForm, setCoordinatorForm] = useState({
+    email: "",
+    password: "",
+    full_name: "",
+    id_number: "",
+  });
+  const [coordinatorDialogOpen, setCoordinatorDialogOpen] = useState(false);
 
   useEffect(() => {
     loadData();
