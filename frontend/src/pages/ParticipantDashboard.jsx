@@ -198,7 +198,7 @@ const ParticipantDashboard = ({ user, onLogout }) => {
       // Get auth token
       const token = localStorage.getItem('token');
       
-      // Download certificate for preview (browsers can't display DOCX natively)
+      // Get PDF for preview
       const previewResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/certificates/preview/${certificateId}`, {
         method: 'GET',
         headers: {
@@ -210,27 +210,19 @@ const ParticipantDashboard = ({ user, onLogout }) => {
         throw new Error('Preview failed');
       }
       
-      // Get the blob from response
+      // Get the blob from response (PDF)
       const blob = await previewResponse.blob();
       
-      // Create download link
+      // Create blob URL and open in new tab
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `certificate_preview_${sessionId}.docx`;
-      link.style.display = 'none';
-      document.body.appendChild(link);
+      window.open(url, '_blank');
       
-      // Trigger download
-      link.click();
-      
-      // Cleanup
+      // Cleanup after a delay
       setTimeout(() => {
-        document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-      }, 100);
+      }, 1000);
       
-      toast.success("Certificate downloaded for preview! Open it with Microsoft Word or Google Docs.");
+      toast.success("Opening certificate preview in new tab...");
     } catch (error) {
       console.error('Preview error:', error);
       toast.error(error.response?.data?.detail || "Failed to preview certificate");
@@ -242,7 +234,7 @@ const ParticipantDashboard = ({ user, onLogout }) => {
       // Get auth token
       const token = localStorage.getItem('token');
       
-      // Download certificate for preview
+      // Get PDF for preview
       const previewResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/certificates/preview/${cert.id}`, {
         method: 'GET',
         headers: {
@@ -254,27 +246,19 @@ const ParticipantDashboard = ({ user, onLogout }) => {
         throw new Error('Preview failed');
       }
       
-      // Get the blob from response
+      // Get the blob from response (PDF)
       const blob = await previewResponse.blob();
       
-      // Create download link
+      // Create blob URL and open in new tab
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `certificate_preview_${cert.session_id}.docx`;
-      link.style.display = 'none';
-      document.body.appendChild(link);
+      window.open(url, '_blank');
       
-      // Trigger download
-      link.click();
-      
-      // Cleanup
+      // Cleanup after a delay
       setTimeout(() => {
-        document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-      }, 100);
+      }, 1000);
       
-      toast.success("Certificate downloaded for preview! Open it with Microsoft Word or Google Docs.");
+      toast.success("Opening certificate preview in new tab...");
     } catch (error) {
       console.error('Preview error:', error);
       toast.error("Failed to preview certificate");
