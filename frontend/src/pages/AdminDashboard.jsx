@@ -752,6 +752,26 @@ const AdminDashboard = ({ user, onLogout }) => {
                             Created: {new Date(company.created_at).toLocaleDateString()}
                           </p>
                         </div>
+                        <div className="flex gap-2">
+                          <Button
+                            data-testid={`edit-company-${company.id}`}
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditCompany(company)}
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            data-testid={`delete-company-${company.id}`}
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteClick("company", company)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
                       </div>
                     ))
                   )}
