@@ -20,6 +20,9 @@ class TestRunner:
         self.participant_token = None
         self.test_program_id = None
         self.created_test_ids = []
+        self.session_id = None
+        self.participant_id = None
+        self.test_result_id = None
         self.session = requests.Session()
         self.session.headers.update({'Content-Type': 'application/json'})
         
