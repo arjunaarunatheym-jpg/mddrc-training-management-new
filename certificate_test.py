@@ -505,8 +505,15 @@ class CertificateTestRunner:
             return False
         
         try:
+            # Construct full URL if download_url is relative
+            download_url = self.download_url
+            if download_url.startswith('/'):
+                download_url = BASE_URL.replace('/api', '') + download_url
+            
+            self.log(f"Downloading from: {download_url}")
+            
             # Download the certificate file
-            response = self.session.get(self.download_url)
+            response = self.session.get(download_url)
             
             if response.status_code == 200:
                 self.log("✅ Certificate file downloaded successfully")
