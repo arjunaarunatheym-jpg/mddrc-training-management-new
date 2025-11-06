@@ -549,18 +549,38 @@ const AdminDashboard = ({ user, onLogout }) => {
                               </span>
                             </div>
                           </div>
-                          <Button
-                            data-testid={`manage-tests-${program.id}`}
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setActiveTab("tests");
-                              setSelectedProgram(program);
-                            }}
-                          >
-                            <ClipboardList className="w-4 h-4 mr-1" />
-                            Manage Tests
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              data-testid={`edit-program-${program.id}`}
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditProgram(program)}
+                            >
+                              <Edit className="w-4 h-4 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              data-testid={`delete-program-${program.id}`}
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteClick("program", program)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Delete
+                            </Button>
+                            <Button
+                              data-testid={`manage-tests-${program.id}`}
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setActiveTab("tests");
+                                setSelectedProgram(program);
+                              }}
+                            >
+                              <ClipboardList className="w-4 h-4 mr-1" />
+                              Tests
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))
