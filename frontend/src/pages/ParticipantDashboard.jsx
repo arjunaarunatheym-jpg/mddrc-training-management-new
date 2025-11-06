@@ -195,47 +195,89 @@ const ParticipantDashboard = ({ user, onLogout }) => {
       const response = await axiosInstance.post(`/certificates/generate/${sessionId}/${user.id}`);
       const certificateId = response.data.certificate_id;
       
-      // Get preview via authenticated request
-      const previewResponse = await axiosInstance.get(`/certificates/preview/${certificateId}`, {
-        responseType: 'blob'
+      // Get auth token
+      const token = localStorage.getItem('token');
+      
+      // Download certificate for preview (browsers can't display DOCX natively)
+      const previewResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/certificates/preview/${certificateId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       
-      // Create blob URL and open in new tab
-      const blob = new Blob([previewResponse.data], {
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      });
+      if (!previewResponse.ok) {
+        throw new Error('Preview failed');
+      }
+      
+      // Get the blob from response
+      const blob = await previewResponse.blob();
+      
+      // Create download link
       const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `certificate_preview_${sessionId}.docx`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
       
-      // Clean up after a delay
-      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+      // Trigger download
+      link.click();
       
-      toast.success("Opening certificate preview...");
+      // Cleanup
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
+      
+      toast.success("Certificate downloaded for preview! Open it with Microsoft Word or Google Docs.");
     } catch (error) {
+      console.error('Preview error:', error);
       toast.error(error.response?.data?.detail || "Failed to preview certificate");
     }
   };
 
   const handlePreviewExistingCertificate = async (cert) => {
     try {
-      // Get preview via authenticated request
-      const previewResponse = await axiosInstance.get(`/certificates/preview/${cert.id}`, {
-        responseType: 'blob'
+      // Get auth token
+      const token = localStorage.getItem('token');
+      
+      // Download certificate for preview
+      const previewResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/certificates/preview/${cert.id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       
-      // Create blob URL and open in new tab
-      const blob = new Blob([previewResponse.data], {
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      });
+      if (!previewResponse.ok) {
+        throw new Error('Preview failed');
+      }
+      
+      // Get the blob from response
+      const blob = await previewResponse.blob();
+      
+      // Create download link
       const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `certificate_preview_${cert.session_id}.docx`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
       
-      // Clean up after a delay
-      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+      // Trigger download
+      link.click();
       
-      toast.success("Opening certificate preview...");
+      // Cleanup
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
+      
+      toast.success("Certificate downloaded for preview! Open it with Microsoft Word or Google Docs.");
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to preview certificate");
+      console.error('Preview error:', error);
+      toast.error("Failed to preview certificate");
     }
   };
 
