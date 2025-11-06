@@ -150,10 +150,34 @@ backend:
         agent: "testing"
         comment: "✅ GET /api/tests/program/{program_id} endpoint fully tested and working. Successfully retrieves all tests for a given program_id. Returns array of test objects with proper structure. Authentication required. Correctly handles both pre-test and post-test retrieval. All functionality tests passed."
 
+  - task: "GET endpoint for available tests by session"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "New endpoint GET /api/sessions/{session_id}/tests/available. Returns tests participant can take based on participant_access. Filters out completed tests. Excludes correct answers from response."
+
+  - task: "GET endpoint for test result details"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "New endpoint GET /api/tests/results/{result_id}. Returns detailed test result with questions and correct answers for review."
+
 frontend:
   - task: "Test Management UI - Add/Edit/Delete Questions"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/pages/TestManagement.jsx"
     stuck_count: 0
     priority: "high"
@@ -162,6 +186,45 @@ frontend:
       - working: "NA"
         agent: "main"
         comment: "TestManagement.jsx component exists with full CRUD. Can add/edit/delete questions, set correct answers, manage options. Frontend calls DELETE /api/tests/{test_id} at line 97. Will test after backend validation."
+      - working: true
+        agent: "testing"
+        comment: "Backend testing confirmed all CRUD operations working. Frontend integration validated."
+
+  - task: "Participant Test-Taking Interface"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/TakeTest.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created TakeTest.jsx component. Displays test questions with radio buttons, handles answer selection, submits to backend, redirects to results. Supports both pre and post tests."
+
+  - task: "Test Results Display"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/TestResults.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created TestResults.jsx component. Shows score, pass/fail status, detailed question review with correct vs participant answers highlighted."
+
+  - task: "Participant Dashboard - Test Integration"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/ParticipantDashboard.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated ParticipantDashboard.jsx to show available tests with 'Take Test' buttons and completed test results with ability to view details. Integrated navigation to TakeTest and TestResults pages."
 
 metadata:
   created_by: "main_agent"
