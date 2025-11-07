@@ -331,6 +331,54 @@ const CoordinatorDashboard = ({ user, onLogout }) => {
     }
   };
 
+  const handleAddParticipant = async () => {
+    if (!newParticipant.email || !newParticipant.password || !newParticipant.full_name || !newParticipant.id_number) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
+    if (!selectedSession) {
+      toast.error("Please select a session first");
+      return;
+    }
+
+    try {
+      // Create or find participant
+      const response = await axiosInstance.post("/sessions", {
+        name: selectedSession.name,
+        program_id: selectedSession.program_id,
+        company_id: selectedSession.company_id,
+        location: selectedSession.location,
+        start_date: selectedSession.start_date,
+        end_date: selectedSession.end_date,
+        participant_ids: selectedSession.participant_ids || [],
+        participants: [newParticipant],
+        supervisors: [],
+        supervisor_ids: selectedSession.supervisor_ids || [],
+        trainer_assignments: selectedSession.trainer_assignments || [],
+        coordinator_id: selectedSession.coordinator_id
+      });
+
+      // Update session with new participant
+      const updatedSession = {
+        ...selectedSession,
+        participant_ids: response.data.session.participant_ids
+      };
+
+      await axiosInstance.put(`/sessions/${selectedSession.id}`, updatedSession);
+      
+      toast.success("Participant added successfully");
+      setAddParticipantDialogOpen(false);
+      setNewParticipant({ email: "", password: "", full_name: "", id_number: "", phone_number: "" });
+      
+      // Reload data
+      await loadSessions();
+      await loadSessionData(selectedSession.id);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to add participant");
+    }
+  };
+
   // Calculate statistics
   const uniqueParticipantsWithAttendance = attendance.filter((v, i, a) => 
     a.findIndex(t => t.participant_id === v.participant_id) === i
