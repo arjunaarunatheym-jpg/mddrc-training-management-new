@@ -1227,6 +1227,72 @@ const CoordinatorDashboard = ({ user, onLogout }) => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Add Participant Dialog */}
+      <Dialog open={addParticipantDialogOpen} onOpenChange={setAddParticipantDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Participant to Session</DialogTitle>
+            <DialogDescription>
+              Add a new participant to {selectedSession?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="p-name">Full Name *</Label>
+              <Input
+                id="p-name"
+                value={newParticipant.full_name}
+                onChange={(e) => setNewParticipant({ ...newParticipant, full_name: e.target.value })}
+                placeholder="John Doe"
+              />
+            </div>
+            <div>
+              <Label htmlFor="p-email">Email *</Label>
+              <Input
+                id="p-email"
+                type="email"
+                value={newParticipant.email}
+                onChange={(e) => setNewParticipant({ ...newParticipant, email: e.target.value })}
+                placeholder="john@example.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="p-id">ID Number *</Label>
+              <Input
+                id="p-id"
+                value={newParticipant.id_number}
+                onChange={(e) => setNewParticipant({ ...newParticipant, id_number: e.target.value })}
+                placeholder="ID123456"
+              />
+            </div>
+            <div>
+              <Label htmlFor="p-phone">Phone Number</Label>
+              <Input
+                id="p-phone"
+                type="tel"
+                value={newParticipant.phone_number}
+                onChange={(e) => setNewParticipant({ ...newParticipant, phone_number: e.target.value })}
+                placeholder="+1234567890"
+              />
+            </div>
+            <div>
+              <Label htmlFor="p-password">Password *</Label>
+              <Input
+                id="p-password"
+                type="password"
+                value={newParticipant.password}
+                onChange={(e) => setNewParticipant({ ...newParticipant, password: e.target.value })}
+                placeholder="Min 6 characters"
+                minLength={6}
+              />
+            </div>
+            <Button onClick={handleAddParticipant} className="w-full" style={{ backgroundColor: primaryColor }}>
+              Add Participant
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
