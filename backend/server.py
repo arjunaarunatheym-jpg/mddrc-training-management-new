@@ -1446,7 +1446,8 @@ async def submit_test(submission: TestSubmit, current_user: User = Depends(get_c
         score=score,
         total_questions=len(questions),
         correct_answers=correct,
-        passed=passed
+        passed=passed,
+        question_indices=submission.question_indices  # Store the shuffled order
     )
     
     doc = result_obj.model_dump()
