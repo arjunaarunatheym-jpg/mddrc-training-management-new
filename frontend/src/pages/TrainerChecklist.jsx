@@ -260,7 +260,11 @@ const TrainerChecklist = ({ user }) => {
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="good" id={`good-${index}`} />
-                        <Label htmlFor={`good-${index}`} className="cursor-pointer">Good Condition</Label>
+                        <Label htmlFor={`good-${index}`} className="cursor-pointer">Good</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="satisfactory" id={`satisfactory-${index}`} />
+                        <Label htmlFor={`satisfactory-${index}`} className="cursor-pointer">Satisfactory</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="needs_repair" id={`repair-${index}`} />
