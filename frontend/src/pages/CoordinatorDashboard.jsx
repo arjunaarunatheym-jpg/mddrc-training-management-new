@@ -385,7 +385,7 @@ const CoordinatorDashboard = ({ user, onLogout }) => {
       // Reload data
       await loadSessions();
       if (selectedSession) {
-        await loadSessionData(selectedSession.id);
+        await loadSessionData(selectedSession);
       }
     } catch (error) {
       toast.error(error.response?.data?.detail || "Failed to add participant");
