@@ -214,6 +214,7 @@ class TestResult(BaseModel):
     correct_answers: int = 0
     passed: bool = False
     submitted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    question_indices: Optional[List[int]] = None  # Store original question order for shuffled tests
 
 class TestSubmit(BaseModel):
     test_id: str
