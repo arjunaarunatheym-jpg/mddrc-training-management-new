@@ -2790,15 +2790,15 @@ VEHICLE CHECKLIST FINDINGS:
 
 DETAILED CHECKLIST ISSUES (items marked as 'needs_repair'):
 {chr(10).join([
-    f"Participant {detail['participant']}: " + 
+    f"- {training_data['participants']['id_map'].get(detail['participant'], 'Unknown participant')}: " + 
     ", ".join([
-        f"{item.get('item', 'Unknown item')} ({item.get('comments', 'No comment')})" 
+        f"{item.get('item', 'Unknown item')} - {item.get('comments', 'No comment')}" 
         for item in detail['items'] 
         if item.get('status') == 'needs_repair'
     ])
     for detail in training_data['checklist_summary']['details']
     if any(item.get('status') == 'needs_repair' for item in detail['items'])
-]) if training_data['checklist_summary']['items_needing_repair'] > 0 else 'No items needing repair'}
+]) if training_data['checklist_summary']['items_needing_repair'] > 0 else '- No items needing repair'}
 
 FEEDBACK:
 - Total Responses: {training_data['feedback_summary']['total_responses']}
