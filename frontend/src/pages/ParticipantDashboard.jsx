@@ -309,11 +309,11 @@ const ParticipantDashboard = ({ user, onLogout }) => {
               <Award className="w-4 h-4 mr-2" />
               Certificates
             </TabsTrigger>
-            <TabsTrigger value="tests" data-testid="tests-tab">
+            <TabsTrigger value="tests" data-testid="tests-tab" disabled={!canAccessAllTabs}>
               <ClipboardCheck className="w-4 h-4 mr-2" />
               Tests
             </TabsTrigger>
-            <TabsTrigger value="checklists" data-testid="checklists-tab">
+            <TabsTrigger value="checklists" data-testid="checklists-tab" disabled={!canAccessAllTabs}>
               <ClipboardCheck className="w-4 h-4 mr-2" />
               Checklists
             </TabsTrigger>
