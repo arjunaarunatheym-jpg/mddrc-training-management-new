@@ -400,6 +400,50 @@ const CoordinatorDashboard = ({ user, onLogout }) => {
                       )}
                     </CardContent>
                   </Card>
+
+                  {/* Vehicle Checklist Issues */}
+                  <Card className="border-red-200">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-red-700">
+                        <span className="text-2xl">⚠️</span>
+                        Vehicle Issues - Needs Repair
+                      </CardTitle>
+                      <CardDescription>Items flagged by trainers requiring attention</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {checklistIssues.length === 0 ? (
+                        <div className="text-center py-8">
+                          <p className="text-green-600 font-medium">✓ No vehicle issues reported</p>
+                          <p className="text-sm text-gray-500 mt-1">All vehicles inspected are in good condition</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {checklistIssues.map((issue, idx) => (
+                            <div key={idx} className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                              <h4 className="font-semibold text-red-900 mb-2">{issue.participant_name}</h4>
+                              <div className="space-y-2">
+                                {issue.items.map((item, itemIdx) => (
+                                  <div key={itemIdx} className="p-2 bg-white rounded border border-red-200">
+                                    <p className="font-medium text-sm text-red-800">{item.item_name || item.name || 'Item'}</p>
+                                    {item.comments && (
+                                      <p className="text-xs text-gray-700 mt-1">{item.comments}</p>
+                                    )}
+                                    {item.photo && (
+                                      <img 
+                                        src={item.photo} 
+                                        alt={item.item_name} 
+                                        className="mt-2 w-24 h-24 object-cover rounded border"
+                                      />
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
               ) : (
                 <Card>
