@@ -2811,19 +2811,33 @@ Generate a professional training report with the following sections:
 2. Training Overview (objectives, dates, location, participants)
 3. Pre-Training Assessment (detailed analysis of pre-test results)
 4. Post-Training Assessment (detailed analysis of post-test results, comparison with pre-test)
-5. Vehicle Inspection Findings (CRITICAL FORMAT: For each participant, list items as "**Item** - Issue description". Extract the item type (Helmet, Mirror, Vest, etc.) from the Item field and use the Issue field for the description. Format example: "**Helmet** - No sirim helmet, **Side mirror** - No side mirror")
+5. Vehicle Inspection Findings - READ CAREFULLY: Format each issue EXACTLY as "   - **[ITEM_CATEGORY]** - [TRAINER_COMMENT]" where:
+   * ITEM_CATEGORY = The vehicle part name ONLY (Helmet, Side mirror, Safety vest, Brake, Tire, Lights, etc.)
+   * TRAINER_COMMENT = The full comment from the trainer describing the issue
+   * You MUST extract the item category intelligently from the 'Item' field even if it contains the full description
+   * Examples:
+     - If Item='No sirim helmet', extract 'Helmet' as ITEM_CATEGORY
+     - If Item='No side mirror', extract 'Side mirror' as ITEM_CATEGORY  
+     - If Item='Worn out', you must infer from context (likely Brake or Tire)
+   * Format: "   - **Helmet** - No sirim helmet"
+   * Format: "   - **Side mirror** - No side mirror"
 6. Participant Feedback (summary of feedback responses)
 7. Key Observations and Recommendations
 8. Conclusion
 
 Use professional language, include data-driven insights, and provide actionable recommendations for the company.
 Format using Markdown with proper headings and bullet points.
-CRITICAL VEHICLE INSPECTION FORMAT RULES:
-- Extract item category names (Helmet, Mirror, Vest, Brake, etc.) from the 'Item' field - even if it contains full descriptions like "No sirim helmet", you should identify it as "Helmet"
-- Use the 'Issue' field for the problem description
-- Format as: "**Item Category** - Issue description"
-- Example: If Item="No sirim helmet" and Issue="No sirim helmet", display as "**Helmet** - No sirim helmet"
-- Do NOT use "undefined" or leave items unnamed"""
+
+ABSOLUTE CRITICAL RULES FOR VEHICLE INSPECTION SECTION:
+1. Each issue line MUST start with "   - **[ITEM_CATEGORY]** - [DESCRIPTION]"
+2. ITEM_CATEGORY must be a clean vehicle part name extracted from the Item field:
+   - "No sirim helmet" → Extract "Helmet"
+   - "No side mirror" → Extract "Side mirror"
+   - "No safety vest" → Extract "Safety vest"
+   - "Missing" or "Need to change" → Infer from context what part it refers to
+3. Use the 'Issue' field as the DESCRIPTION after the dash
+4. NEVER write "undefined" or leave item unnamed
+5. Be intelligent in extracting the core item name from any description"""
 
     # Call GPT-5
     try:
