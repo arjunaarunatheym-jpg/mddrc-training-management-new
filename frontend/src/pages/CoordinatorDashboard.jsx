@@ -39,6 +39,14 @@ const CoordinatorDashboard = ({ user, onLogout }) => {
   const [checklistIssues, setChecklistIssues] = useState([]);
   const [sessionAccess, setSessionAccess] = useState([]);
   const [sessionStats, setSessionStats] = useState({});
+  const [addParticipantDialogOpen, setAddParticipantDialogOpen] = useState(false);
+  const [newParticipant, setNewParticipant] = useState({
+    email: "",
+    password: "",
+    full_name: "",
+    id_number: "",
+    phone_number: ""
+  });
 
   useEffect(() => {
     loadSessions();
