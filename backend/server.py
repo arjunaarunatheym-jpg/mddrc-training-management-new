@@ -1945,6 +1945,295 @@ async def get_checklist_photo(filename: str):
         raise HTTPException(status_code=404, detail="Photo not found")
     return FileResponse(file_path)
 
+# ============ AI REPORT GENERATION ============
+
+async def generate_training_report_content(session_id: str, program_id: str, company_id: str) -> str:
+    """Generate comprehensive training report using GPT-5"""
+    
+    # Gather all data
+    session = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    program = await db.programs.find_one({"id": program_id}, {"_id": 0})
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    
+    # Get all participants
+    participant_ids = session.get('participant_ids', [])
+    participants = []
+    for pid in participant_ids:
+        user = await db.users.find_one({"id": pid}, {"_id": 0})
+        if user:
+            participants.append(user)
+    
+    # Get pre-test results
+    pre_tests = await db.test_results.find({
+        "session_id": session_id,
+        "test_type": "pre"
+    }, {"_id": 0}).to_list(100)
+    
+    # Get post-test results
+    post_tests = await db.test_results.find({
+        "session_id": session_id,
+        "test_type": "post"
+    }, {"_id": 0}).to_list(100)
+    
+    # Get checklists
+    checklists = await db.vehicle_checklists.find({
+        "session_id": session_id
+    }, {"_id": 0}).to_list(100)
+    
+    # Get feedback
+    feedbacks = await db.course_feedback.find({
+        "session_id": session_id
+    }, {"_id": 0}).to_list(100)
+    
+    # Get attendance
+    attendance = await db.attendance_records.find({
+        "session_id": session_id
+    }, {"_id": 0}).to_list(100)
+    
+    # Build comprehensive data structure
+    training_data = {
+        "session": {
+            "name": session.get('name'),
+            "location": session.get('location'),
+            "start_date": str(session.get('start_date')),
+            "end_date": str(session.get('end_date'))
+        },
+        "program": {
+            "name": program.get('name'),
+            "description": program.get('description', '')
+        },
+        "company": {
+            "name": company.get('name')
+        },
+        "participants": {
+            "total": len(participants),
+            "names": [p.get('full_name') for p in participants]
+        },
+        "pre_test_results": {
+            "total_participants": len(pre_tests),
+            "average_score": sum([t.get('score', 0) for t in pre_tests]) / len(pre_tests) if pre_tests else 0,
+            "pass_rate": sum([1 for t in pre_tests if t.get('passed', False)]) / len(pre_tests) * 100 if pre_tests else 0,
+            "details": [{"participant": t.get('participant_id'), "score": t.get('score'), "passed": t.get('passed')} for t in pre_tests]
+        },
+        "post_test_results": {
+            "total_participants": len(post_tests),
+            "average_score": sum([t.get('score', 0) for t in post_tests]) / len(post_tests) if post_tests else 0,
+            "pass_rate": sum([1 for t in post_tests if t.get('passed', False)]) / len(post_tests) * 100 if post_tests else 0,
+            "improvement": (sum([t.get('score', 0) for t in post_tests]) / len(post_tests) if post_tests else 0) - (sum([t.get('score', 0) for t in pre_tests]) / len(pre_tests) if pre_tests else 0),
+            "details": [{"participant": t.get('participant_id'), "score": t.get('score'), "passed": t.get('passed')} for t in post_tests]
+        },
+        "checklist_summary": {
+            "total_checklists": len(checklists),
+            "items_needing_repair": sum([len([item for item in c.get('checklist_items', []) if item.get('status') == 'needs_repair']) for c in checklists]),
+            "common_issues": [],
+            "details": [{"participant": c.get('participant_id'), "items": c.get('checklist_items', [])} for c in checklists]
+        },
+        "feedback_summary": {
+            "total_responses": len(feedbacks),
+            "average_ratings": {},
+            "comments": [f.get('responses', {}) for f in feedbacks]
+        },
+        "attendance": {
+            "total_records": len(attendance),
+            "attendance_rate": len([a for a in attendance if a.get('clock_out_time')]) / len(attendance) * 100 if attendance else 100
+        }
+    }
+    
+    # Create prompt for GPT-5
+    prompt = f"""Generate a comprehensive Defensive Driving/Riding Training Report based on the following data:
+
+TRAINING DETAILS:
+- Program: {training_data['program']['name']}
+- Company: {training_data['company']['name']}
+- Session: {training_data['session']['name']}
+- Location: {training_data['session']['location']}
+- Dates: {training_data['session']['start_date']} to {training_data['session']['end_date']}
+- Total Participants: {training_data['participants']['total']}
+
+PRE-TEST RESULTS:
+- Participants Tested: {training_data['pre_test_results']['total_participants']}
+- Average Score: {training_data['pre_test_results']['average_score']:.1f}%
+- Pass Rate: {training_data['pre_test_results']['pass_rate']:.1f}%
+
+POST-TEST RESULTS:
+- Participants Tested: {training_data['post_test_results']['total_participants']}
+- Average Score: {training_data['post_test_results']['average_score']:.1f}%
+- Pass Rate: {training_data['post_test_results']['pass_rate']:.1f}%
+- Improvement: {training_data['post_test_results']['improvement']:.1f}%
+
+VEHICLE CHECKLIST FINDINGS:
+- Total Checklists Completed: {training_data['checklist_summary']['total_checklists']}
+- Items Needing Repair: {training_data['checklist_summary']['items_needing_repair']}
+
+FEEDBACK:
+- Total Responses: {training_data['feedback_summary']['total_responses']}
+
+ATTENDANCE:
+- Attendance Rate: {training_data['attendance']['attendance_rate']:.1f}%
+
+Generate a professional training report with the following sections:
+1. Executive Summary (2-3 paragraphs)
+2. Training Overview (objectives, dates, location, participants)
+3. Pre-Training Assessment (detailed analysis of pre-test results)
+4. Post-Training Assessment (detailed analysis of post-test results, comparison with pre-test)
+5. Vehicle Inspection Findings (summary of checklist results)
+6. Participant Feedback (summary of feedback responses)
+7. Key Observations and Recommendations
+8. Conclusion
+
+Use professional language, include data-driven insights, and provide actionable recommendations for the company.
+Format using Markdown with proper headings and bullet points."""
+
+    # Call GPT-5
+    try:
+        api_key = os.getenv('EMERGENT_LLM_KEY')
+        llm = LlmChat(api_key=api_key)
+        
+        messages = [UserMessage(content=prompt)]
+        response = llm.chat(messages=messages, model="gpt-4o")
+        
+        return response.content
+    except Exception as e:
+        logging.error(f"GPT-5 report generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}")
+
+@api_router.post("/reports/generate")
+async def generate_report(request: ReportGenerateRequest, current_user: User = Depends(get_current_user)):
+    """Generate AI training report (Coordinator only)"""
+    if current_user.role not in ["coordinator", "admin"]:
+        raise HTTPException(status_code=403, detail="Only coordinators can generate reports")
+    
+    # Get session details
+    session = await db.sessions.find_one({"id": request.session_id}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    # Generate report content
+    content = await generate_training_report_content(
+        request.session_id,
+        session['program_id'],
+        session['company_id']
+    )
+    
+    # Save as draft
+    report = TrainingReport(
+        session_id=request.session_id,
+        program_id=session['program_id'],
+        company_id=session['company_id'],
+        generated_by=current_user.id,
+        content=content,
+        status="draft"
+    )
+    
+    await db.training_reports.insert_one(report.model_dump())
+    
+    return report
+
+@api_router.get("/reports/session/{session_id}")
+async def get_session_report(session_id: str, current_user: User = Depends(get_current_user)):
+    """Get report for session"""
+    if current_user.role not in ["coordinator", "admin", "pic_supervisor"]:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    report = await db.training_reports.find_one({"session_id": session_id}, {"_id": 0})
+    
+    # If pic_supervisor, only return published reports
+    if current_user.role == "pic_supervisor":
+        if not report or report.get('status') != "published":
+            raise HTTPException(status_code=404, detail="No published report found")
+        if current_user.id not in report.get('published_to_supervisors', []):
+            raise HTTPException(status_code=403, detail="Report not published to you")
+    
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    return report
+
+@api_router.put("/reports/{report_id}")
+async def update_report(report_id: str, request: ReportUpdateRequest, current_user: User = Depends(get_current_user)):
+    """Update report content (draft only)"""
+    if current_user.role not in ["coordinator", "admin"]:
+        raise HTTPException(status_code=403, detail="Only coordinators can edit reports")
+    
+    report = await db.training_reports.find_one({"id": report_id}, {"_id": 0})
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    if report['status'] == "published":
+        raise HTTPException(status_code=400, detail="Cannot edit published report")
+    
+    await db.training_reports.update_one(
+        {"id": report_id},
+        {"$set": {"content": request.content}}
+    )
+    
+    return {"message": "Report updated successfully"}
+
+@api_router.post("/reports/{report_id}/publish")
+async def publish_report(report_id: str, current_user: User = Depends(get_current_user)):
+    """Publish report to supervisors"""
+    if current_user.role not in ["coordinator", "admin"]:
+        raise HTTPException(status_code=403, detail="Only coordinators can publish reports")
+    
+    report = await db.training_reports.find_one({"id": report_id}, {"_id": 0})
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    # Get session to find supervisors
+    session = await db.sessions.find_one({"id": report['session_id']}, {"_id": 0})
+    supervisor_ids = session.get('supervisor_ids', [])
+    
+    await db.training_reports.update_one(
+        {"id": report_id},
+        {"$set": {
+            "status": "published",
+            "published_at": datetime.now(timezone.utc),
+            "published_to_supervisors": supervisor_ids
+        }}
+    )
+    
+    return {"message": "Report published successfully", "published_to": supervisor_ids}
+
+# ============ SUPERVISOR ENDPOINTS ============
+
+@api_router.get("/supervisor/sessions")
+async def get_supervisor_sessions(current_user: User = Depends(get_current_user)):
+    """Get sessions for supervisor"""
+    if current_user.role != "pic_supervisor":
+        raise HTTPException(status_code=403, detail="Only supervisors can access this")
+    
+    # Find sessions where user is listed as supervisor
+    sessions = await db.sessions.find({
+        "supervisor_ids": current_user.id
+    }, {"_id": 0}).to_list(100)
+    
+    return sessions
+
+@api_router.get("/supervisor/attendance/{session_id}")
+async def get_session_attendance(session_id: str, current_user: User = Depends(get_current_user)):
+    """Get attendance for session (Supervisor)"""
+    if current_user.role != "pic_supervisor":
+        raise HTTPException(status_code=403, detail="Only supervisors can access this")
+    
+    # Verify supervisor has access to this session
+    session = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not session or current_user.id not in session.get('supervisor_ids', []):
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    # Get attendance records
+    attendance = await db.attendance_records.find({
+        "session_id": session_id
+    }, {"_id": 0}).to_list(100)
+    
+    # Get participant details
+    for record in attendance:
+        participant = await db.users.find_one({"id": record['participant_id']}, {"_id": 0, "password": 0})
+        if participant:
+            record['participant_name'] = participant.get('full_name')
+            record['participant_email'] = participant.get('email')
+    
+    return attendance
+
 # Include router
 app.include_router(api_router)
 
