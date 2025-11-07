@@ -54,6 +54,11 @@ const AdminDashboard = ({ user, onLogout }) => {
     participants: [],
     trainer_assignments: [],
     coordinator_id: "",
+    supervisor: {
+      full_name: "",
+      email: "",
+      password: ""
+    }
   });
   const [newParticipant, setNewParticipant] = useState({
     email: "",
