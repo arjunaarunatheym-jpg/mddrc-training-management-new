@@ -550,20 +550,36 @@ const AdminDashboard = ({ user, onLogout }) => {
   const handleCreateChecklistTemplate = async (e) => {
     e.preventDefault();
     if (!checklistForm.program_id || checklistForm.items.filter(i => i.trim()).length === 0) {
-      toast.error("Please select a program and add at least one checklist item");
+      toast.error("Please add a checklist item");
       return;
     }
+    
     try {
-      await axiosInstance.post("/checklist-templates", {
-        program_id: checklistForm.program_id,
-        items: checklistForm.items.filter(i => i.trim())
-      });
-      toast.success("Checklist template created successfully");
+      // Check if template exists for this program
+      const existingTemplate = checklistTemplates.find(t => t.program_id === checklistForm.program_id);
+      
+      if (existingTemplate) {
+        // Update existing template by adding new items
+        const updatedItems = [...existingTemplate.items, ...checklistForm.items.filter(i => i.trim())];
+        await axiosInstance.put(`/checklist-templates/${existingTemplate.id}`, {
+          program_id: checklistForm.program_id,
+          items: updatedItems
+        });
+        toast.success("Checklist item added successfully");
+      } else {
+        // Create new template
+        await axiosInstance.post("/checklist-templates", {
+          program_id: checklistForm.program_id,
+          items: checklistForm.items.filter(i => i.trim())
+        });
+        toast.success("Checklist item added successfully");
+      }
+      
       setChecklistDialogOpen(false);
       setChecklistForm({ program_id: "", items: [""] });
       loadChecklistTemplates();
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to create checklist template");
+      toast.error(error.response?.data?.detail || "Failed to add checklist item");
     }
   };
 
