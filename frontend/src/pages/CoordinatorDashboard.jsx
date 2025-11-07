@@ -132,16 +132,34 @@ const CoordinatorDashboard = ({ user, onLogout }) => {
         return;
       }
       
+      console.log("Loading data for session:", sessionId);
+      console.log("Session participant_ids:", session.participant_ids);
+      
       const [usersRes, attendanceRes, testResultsRes] = await Promise.all([
-        axiosInstance.get(`/users`).catch(err => ({ data: [] })),
-        axiosInstance.get(`/attendance/session/${sessionId}`).catch(err => ({ data: [] })),
-        axiosInstance.get(`/tests/results/session/${sessionId}`).catch(err => ({ data: [] }))
+        axiosInstance.get(`/users`).catch(err => {
+          console.error("Failed to load users:", err);
+          return { data: [] };
+        }),
+        axiosInstance.get(`/attendance/session/${sessionId}`).catch(err => {
+          console.error("Failed to load attendance:", err);
+          return { data: [] };
+        }),
+        axiosInstance.get(`/tests/results/session/${sessionId}`).catch(err => {
+          console.error("Failed to load test results:", err);
+          return { data: [] };
+        })
       ]);
+      
+      console.log("Loaded users:", usersRes.data.length);
+      console.log("Loaded attendance:", attendanceRes.data.length);
+      console.log("Loaded test results:", testResultsRes.data.length);
       
       // Filter participants for THIS specific session
       const sessionParticipants = usersRes.data.filter(u => 
         session?.participant_ids && session.participant_ids.includes(u.id)
       );
+      
+      console.log("Filtered session participants:", sessionParticipants.length);
       
       setParticipants(sessionParticipants);
       setAttendance(attendanceRes.data || []);
@@ -156,7 +174,7 @@ const CoordinatorDashboard = ({ user, onLogout }) => {
       }
     } catch (error) {
       console.error("Failed to load session data", error);
-      // Don't show error toast here, data might be empty initially
+      toast.error("Failed to load session data: " + error.message);
     }
   };
 
