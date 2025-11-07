@@ -1392,7 +1392,8 @@ async def get_test(test_id: str, current_user: User = Depends(get_current_user))
         test_doc['questions'] = [
             {
                 'question': q['question'],
-                'options': q['options']
+                'options': q['options'],
+                'original_index': test_doc['questions'].index(q)  # Track original position
             }
             for q in questions
         ]
