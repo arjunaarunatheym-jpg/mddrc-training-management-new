@@ -770,17 +770,18 @@ const ParticipantDashboard = ({ user, onLogout }) => {
                         )}
 
                         {/* Areas needing attention */}
-                        {checklist.checklist_items && checklist.checklist_items.filter(item => item.status === "needs_repair").length > 0 && (
-                          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="font-semibold text-red-800 text-sm">
-                              ⚠️ Items Needing Attention:
+                        {checklist.checklist_items && checklist.checklist_items.filter(item => (item.status || '').toLowerCase() === "needs_repair").length > 0 && (
+                          <div className="mt-4 p-4 bg-red-50 border-2 border-red-300 rounded-lg">
+                            <p className="font-bold text-red-800 text-base flex items-center gap-2">
+                              <span className="text-xl">⚠️</span> Items Needing Attention
                             </p>
-                            <ul className="mt-2 space-y-1">
+                            <ul className="mt-3 space-y-2">
                               {checklist.checklist_items
-                                .filter(item => item.status === "needs_repair")
+                                .filter(item => (item.status || '').toLowerCase() === "needs_repair")
                                 .map((item, idx) => (
-                                  <li key={idx} className="text-sm text-red-700">
-                                    • {item.item_name}
+                                  <li key={idx} className="text-sm text-red-800 font-medium flex items-start gap-2">
+                                    <span className="mt-0.5">•</span>
+                                    <span>{item.item_name || item.name || item.item || 'Item'}</span>
                                   </li>
                                 ))}
                             </ul>
