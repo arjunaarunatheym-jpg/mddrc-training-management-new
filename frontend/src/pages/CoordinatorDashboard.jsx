@@ -475,6 +475,7 @@ const CoordinatorDashboard = ({ user, onLogout }) => {
                                 <input
                                   type="file"
                                   accept="image/*"
+                                  capture="environment"
                                   className="hidden"
                                   onChange={(e) => handlePhotoUpload(e, 'theory_photo_2')}
                                 />
