@@ -697,6 +697,43 @@ async def delete_user(user_id: str, current_user: User = Depends(get_current_use
     
     return {"message": "User deleted successfully"}
 
+# Check if user exists
+@api_router.post("/users/check-exists")
+async def check_user_exists(
+    full_name: str,
+    email: Optional[str] = None,
+    phone_number: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Check if a user exists by name + email OR name + phone"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can check user existence")
+    
+    query = {
+        "full_name": full_name,
+        "$or": []
+    }
+    
+    if email:
+        query["$or"].append({"email": email})
+    if phone_number:
+        query["$or"].append({"phone_number": phone_number})
+    
+    if not query["$or"]:
+        return {"exists": False, "user": None}
+    
+    existing_user = await db.users.find_one(query, {"_id": 0, "hashed_password": 0})
+    
+    if existing_user:
+        if isinstance(existing_user.get('created_at'), str):
+            existing_user['created_at'] = datetime.fromisoformat(existing_user['created_at'])
+        return {
+            "exists": True,
+            "user": User(**existing_user)
+        }
+    
+    return {"exists": False, "user": None}
+
 # Session Routes
 @api_router.post("/sessions")
 async def create_session(session_data: SessionCreate, current_user: User = Depends(get_current_user)):
