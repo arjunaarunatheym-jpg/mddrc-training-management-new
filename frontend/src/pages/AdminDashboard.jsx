@@ -273,11 +273,16 @@ const AdminDashboard = ({ user, onLogout }) => {
             full_name: sessionForm.supervisor.full_name,
             role: "pic_supervisor",
             company_id: sessionForm.company_id,
+            id_number: `SUP-${Date.now()}`, // Auto-generate ID for supervisor
           });
           supervisorId = supervisorResponse.data.id;
-          toast.success(`Supervisor ${sessionForm.supervisor.full_name} created`);
+          toast.success(`Supervisor ${sessionForm.supervisor.full_name} created successfully!`);
         } catch (error) {
-          toast.error(`Failed to create supervisor: ${error.response?.data?.detail || error.message}`);
+          const errorMsg = error.response?.data?.detail || error.message;
+          console.error('Supervisor creation error:', errorMsg);
+          toast.error(`Failed to create supervisor: ${errorMsg}`);
+          // Don't continue if supervisor creation fails and user intended to add one
+          throw new Error("Supervisor creation failed");
         }
       }
 
