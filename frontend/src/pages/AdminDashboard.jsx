@@ -320,8 +320,7 @@ const AdminDashboard = ({ user, onLogout }) => {
   const handleCreateSession = async (e) => {
     e.preventDefault();
     
-    const totalParticipants = sessionForm.participant_ids.length + sessionForm.participants.length;
-    if (totalParticipants === 0) {
+    if (sessionForm.participants.length === 0) {
       toast.error("Please add at least one participant");
       return;
     }
