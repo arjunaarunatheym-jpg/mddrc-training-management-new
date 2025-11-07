@@ -89,7 +89,7 @@ function App() {
                   <Navigate to="/admin" replace />
                 ) : user.role === "participant" ? (
                   <Navigate to="/participant" replace />
-                ) : user.role === "supervisor" ? (
+                ) : user.role === "supervisor" || user.role === "pic_supervisor" ? (
                   <Navigate to="/supervisor" replace />
                 ) : user.role === "trainer" ? (
                   <Navigate to="/trainer" replace />
