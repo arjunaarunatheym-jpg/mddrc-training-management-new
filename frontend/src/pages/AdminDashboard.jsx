@@ -263,7 +263,7 @@ const AdminDashboard = ({ user, onLogout }) => {
         }
       }
 
-      // Create supervisor if provided
+      // Create supervisor if provided (optional - won't block session creation)
       let supervisorId = null;
       if (sessionForm.supervisor.email && sessionForm.supervisor.password && sessionForm.supervisor.full_name) {
         try {
@@ -280,9 +280,8 @@ const AdminDashboard = ({ user, onLogout }) => {
         } catch (error) {
           const errorMsg = error.response?.data?.detail || error.message;
           console.error('Supervisor creation error:', errorMsg);
-          toast.error(`Failed to create supervisor: ${errorMsg}`);
-          // Don't continue if supervisor creation fails and user intended to add one
-          throw new Error("Supervisor creation failed");
+          toast.error(`Supervisor creation failed: ${errorMsg}. Session will be created without supervisor.`);
+          // Continue creating session even if supervisor creation fails
         }
       }
 
