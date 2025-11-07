@@ -622,27 +622,47 @@ async def create_session(session_data: SessionCreate, current_user: User = Depen
 
 @api_router.get("/sessions", response_model=List[Session])
 async def get_sessions(current_user: User = Depends(get_current_user)):
+    # Non-admin users only see active sessions
+    query = {}
+    if current_user.role not in ["admin"]:
+        query["status"] = "active"
+    
     if current_user.role == "participant":
-        sessions = await db.sessions.find(
-            {"participant_ids": current_user.id},
-            {"_id": 0}
-        ).to_list(1000)
+        query["participant_ids"] = current_user.id
+        sessions = await db.sessions.find(query, {"_id": 0}).to_list(1000)
         
         # Auto-create participant_access records for each session
         for session in sessions:
             await get_or_create_participant_access(current_user.id, session['id'])
     elif current_user.role == "supervisor":
-        sessions = await db.sessions.find(
-            {"supervisor_ids": current_user.id},
-            {"_id": 0}
-        ).to_list(1000)
+        query["supervisor_ids"] = current_user.id
+        sessions = await db.sessions.find(query, {"_id": 0}).to_list(1000)
     else:
-        sessions = await db.sessions.find({}, {"_id": 0}).to_list(1000)
+        sessions = await db.sessions.find(query, {"_id": 0}).to_list(1000)
     
     for session in sessions:
         if isinstance(session.get('created_at'), str):
             session['created_at'] = datetime.fromisoformat(session['created_at'])
     return sessions
+
+@api_router.put("/sessions/{session_id}/toggle-status")
+async def toggle_session_status(session_id: str, current_user: User = Depends(get_current_user)):
+    """Toggle session between active and inactive (Admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can change session status")
+    
+    session = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    new_status = "inactive" if session.get("status", "active") == "active" else "active"
+    
+    await db.sessions.update_one(
+        {"id": session_id},
+        {"$set": {"status": new_status}}
+    )
+    
+    return {"message": f"Session marked as {new_status}", "status": new_status}
 
 @api_router.get("/sessions/{session_id}", response_model=Session)
 async def get_session(session_id: str, current_user: User = Depends(get_current_user)):
