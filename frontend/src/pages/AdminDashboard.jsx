@@ -28,6 +28,16 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [checklistTemplates, setChecklistTemplates] = useState([]);
   const [checklistForm, setChecklistForm] = useState({ program_id: "", items: [""] });
   const [checklistDialogOpen, setChecklistDialogOpen] = useState(false);
+  
+  // Supervisor states
+  const [supervisors, setSupervisors] = useState([]);
+  const [supervisorForm, setSupervisorForm] = useState({
+    email: "",
+    password: "",
+    full_name: "",
+    company_id: ""
+  });
+  const [supervisorDialogOpen, setSupervisorDialogOpen] = useState(false);
 
   const [companyName, setCompanyName] = useState("");
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
