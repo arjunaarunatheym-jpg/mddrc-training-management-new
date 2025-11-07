@@ -136,7 +136,7 @@ function App() {
           <Route
             path="/supervisor"
             element={
-              user && user.role === "supervisor" ? (
+              user && (user.role === "supervisor" || user.role === "pic_supervisor") ? (
                 <SupervisorDashboard user={user} onLogout={handleLogout} />
               ) : (
                 <Navigate to="/login" replace />
