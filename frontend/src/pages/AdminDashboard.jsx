@@ -139,6 +139,32 @@ const AdminDashboard = ({ user, onLogout }) => {
     }
   };
 
+  // Check if user exists for real-time feedback
+  const checkUserExists = async (full_name, email, phone_number, setMatchStatus) => {
+    if (!full_name || (!email && !phone_number)) {
+      setMatchStatus(null);
+      return;
+    }
+
+    try {
+      const response = await axiosInstance.post("/users/check-exists", null, {
+        params: { full_name, email, phone_number }
+      });
+      
+      if (response.data.exists) {
+        setMatchStatus({
+          exists: true,
+          user: response.data.user
+        });
+      } else {
+        setMatchStatus({ exists: false });
+      }
+    } catch (error) {
+      console.error("Error checking user existence:", error);
+      setMatchStatus(null);
+    }
+  };
+
   // Supervisor functions removed - now created during session creation
 
   const handleCreateCompany = async (e) => {
