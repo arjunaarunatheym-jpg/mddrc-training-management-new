@@ -1472,6 +1472,20 @@ async def get_participant_results(participant_id: str, current_user: User = Depe
             result['submitted_at'] = datetime.fromisoformat(result['submitted_at'])
     return results
 
+@api_router.get("/tests/results/session/{session_id}")
+async def get_session_test_results(session_id: str, current_user: User = Depends(get_current_user)):
+    """Get all test results for a session (for coordinators/admins)"""
+    if current_user.role not in ["coordinator", "admin"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    results = await db.test_results.find({"session_id": session_id}, {"_id": 0}).to_list(1000)
+    
+    for result in results:
+        if isinstance(result.get('submitted_at'), str):
+            result['submitted_at'] = datetime.fromisoformat(result['submitted_at'])
+    
+    return results
+
 @api_router.get("/tests/results/{result_id}")
 async def get_test_result_detail(result_id: str, current_user: User = Depends(get_current_user)):
     result = await db.test_results.find_one({"id": result_id}, {"_id": 0})
