@@ -1048,6 +1048,51 @@ const AdminDashboard = ({ user, onLogout }) => {
                           </Select>
                         </div>
 
+                        {/* Add Supervisor */}
+                        <div className="space-y-4 border-t pt-4">
+                          <h3 className="font-semibold text-lg">Add Supervisor (Optional)</h3>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label htmlFor="supervisor-name">Full Name</Label>
+                              <Input
+                                id="supervisor-name"
+                                value={sessionForm.supervisor.full_name}
+                                onChange={(e) => setSessionForm({ 
+                                  ...sessionForm, 
+                                  supervisor: { ...sessionForm.supervisor, full_name: e.target.value }
+                                })}
+                                placeholder="Supervisor Name"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="supervisor-email">Email</Label>
+                              <Input
+                                id="supervisor-email"
+                                type="email"
+                                value={sessionForm.supervisor.email}
+                                onChange={(e) => setSessionForm({ 
+                                  ...sessionForm, 
+                                  supervisor: { ...sessionForm.supervisor, email: e.target.value }
+                                })}
+                                placeholder="supervisor@example.com"
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <Label htmlFor="supervisor-password">Password</Label>
+                              <Input
+                                id="supervisor-password"
+                                type="password"
+                                value={sessionForm.supervisor.password}
+                                onChange={(e) => setSessionForm({ 
+                                  ...sessionForm, 
+                                  supervisor: { ...sessionForm.supervisor, password: e.target.value }
+                                })}
+                                placeholder="Password"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
                         {/* Add Participants */}
                         <div className="space-y-4 border-t pt-4">
                           <h3 className="font-semibold text-lg">Add Participants</h3>
