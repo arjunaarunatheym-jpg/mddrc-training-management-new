@@ -78,6 +78,14 @@ const AdminDashboard = ({ user, onLogout }) => {
   });
   const [sessionDialogOpen, setSessionDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
+  
+  // Password reset states
+  const [resetPasswordUser, setResetPasswordUser] = useState(null);
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [newPasswordForm, setNewPasswordForm] = useState({
+    newPassword: "",
+    confirmPassword: "",
+  });
   const [editSessionDialogOpen, setEditSessionDialogOpen] = useState(false);
 
   const [trainerForm, setTrainerForm] = useState({
