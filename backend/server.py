@@ -698,21 +698,73 @@ async def delete_user(user_id: str, current_user: User = Depends(get_current_use
     return {"message": "User deleted successfully"}
 
 # Session Routes
-@api_router.post("/sessions", response_model=Session)
+@api_router.post("/sessions")
 async def create_session(session_data: SessionCreate, current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only admins can create sessions")
     
-    session_obj = Session(**session_data.model_dump())
+    # Process new participants (find or create)
+    processed_participant_ids = list(session_data.participant_ids)  # Start with existing IDs
+    participant_results = []
+    
+    for participant_data in session_data.participants:
+        result = await find_or_create_user(
+            participant_data.model_dump(),
+            role="participant",
+            company_id=session_data.company_id
+        )
+        processed_participant_ids.append(result["user"].id)
+        participant_results.append({
+            "name": result["user"].full_name,
+            "email": result["user"].email,
+            "is_existing": result["is_existing"]
+        })
+    
+    # Process new supervisors (find or create)
+    processed_supervisor_ids = list(session_data.supervisor_ids)  # Start with existing IDs
+    supervisor_results = []
+    
+    for supervisor_data in session_data.supervisors:
+        result = await find_or_create_user(
+            supervisor_data.model_dump(),
+            role="pic_supervisor",
+            company_id=session_data.company_id
+        )
+        processed_supervisor_ids.append(result["user"].id)
+        supervisor_results.append({
+            "name": result["user"].full_name,
+            "email": result["user"].email,
+            "is_existing": result["is_existing"]
+        })
+    
+    # Create session with processed IDs
+    session_obj = Session(
+        name=session_data.name,
+        program_id=session_data.program_id,
+        company_id=session_data.company_id,
+        location=session_data.location,
+        start_date=session_data.start_date,
+        end_date=session_data.end_date,
+        participant_ids=processed_participant_ids,
+        supervisor_ids=processed_supervisor_ids,
+        trainer_assignments=session_data.trainer_assignments,
+        coordinator_id=session_data.coordinator_id,
+    )
+    
     doc = session_obj.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
     
     await db.sessions.insert_one(doc)
     
-    for participant_id in session_data.participant_ids:
+    # Create participant access records
+    for participant_id in processed_participant_ids:
         await get_or_create_participant_access(participant_id, session_obj.id)
     
-    return session_obj
+    return {
+        "session": session_obj,
+        "participant_results": participant_results,
+        "supervisor_results": supervisor_results
+    }
 
 @api_router.get("/sessions", response_model=List[Session])
 async def get_sessions(current_user: User = Depends(get_current_user)):
