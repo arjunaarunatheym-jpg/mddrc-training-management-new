@@ -1714,6 +1714,103 @@ async def get_coordinator_reports(coordinator_id: str, current_user: User = Depe
     
     return reports
 
+@api_router.post("/training-reports/{session_id}/generate-ai-report")
+async def generate_ai_report(session_id: str, current_user: User = Depends(get_current_user)):
+    """Generate AI training report using ChatGPT"""
+    if current_user.role != "coordinator" and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only coordinators can generate reports")
+    
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+    from dotenv import load_dotenv
+    load_dotenv()
+    
+    # Get session details
+    session = await db.sessions.find_one({"id": session_id}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    # Get program details
+    program = await db.programs.find_one({"id": session['program_id']}, {"_id": 0})
+    
+    # Get company details
+    company = await db.companies.find_one({"id": session['company_id']}, {"_id": 0})
+    
+    # Get participants count
+    participant_count = len(session.get('participant_ids', []))
+    
+    # Get attendance records
+    attendance_records = await db.attendance.find({"session_id": session_id}, {"_id": 0}).to_list(1000)
+    total_attendance = len(set([r['participant_id'] for r in attendance_records]))
+    
+    # Get test results
+    test_results = await db.test_results.find({"session_id": session_id}, {"_id": 0}).to_list(1000)
+    passed_tests = len([r for r in test_results if r.get('passed', False)])
+    
+    # Get training report with photos
+    training_report = await db.training_reports.find_one({"session_id": session_id}, {"_id": 0})
+    
+    # Build context for AI
+    context = f"""
+Generate a professional training completion report for the following defensive driving training session:
+
+**Session Details:**
+- Program: {program.get('name', 'N/A') if program else 'N/A'}
+- Company: {company.get('name', 'N/A') if company else 'N/A'}
+- Location: {session.get('location', 'N/A')}
+- Start Date: {session.get('start_date', 'N/A')}
+- End Date: {session.get('end_date', 'N/A')}
+- Total Participants: {participant_count}
+- Attendance Rate: {total_attendance}/{participant_count}
+- Test Pass Rate: {passed_tests}/{len(test_results)} passed
+
+**Photos Provided:**
+- Group Photo: {"Yes" if training_report and training_report.get('group_photo') else "No"}
+- Theory Session Photos: {2 if training_report and training_report.get('theory_photo_1') and training_report.get('theory_photo_2') else 0}
+- Practical Session Photos: {3 if training_report and training_report.get('practical_photo_1') and training_report.get('practical_photo_2') and training_report.get('practical_photo_3') else 0}
+
+Please generate a comprehensive training report with the following sections:
+1. **Executive Summary** - Brief overview of the training session
+2. **Training Overview** - Details about the program, location, and duration
+3. **Participant Engagement** - Attendance and participation analysis
+4. **Assessment Results** - Test scores and pass rates
+5. **Training Activities** - Description of theory and practical sessions (mention photos if provided)
+6. **Key Outcomes** - What participants learned and achieved
+7. **Recommendations** - Suggestions for future training improvements
+
+Format the report in a professional manner with clear sections and bullet points where appropriate.
+"""
+    
+    try:
+        # Initialize LLM Chat
+        api_key = os.environ.get('EMERGENT_LLM_KEY', '')
+        if not api_key:
+            raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY not configured")
+        
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"report_{session_id}",
+            system_message="You are a professional training report writer specializing in defensive driving and road safety training programs."
+        ).with_model("openai", "gpt-4o")
+        
+        user_message = UserMessage(text=context)
+        
+        # Generate report
+        ai_response = await chat.send_message(user_message)
+        
+        return {
+            "session_id": session_id,
+            "generated_report": ai_response,
+            "metadata": {
+                "participant_count": participant_count,
+                "attendance_rate": f"{total_attendance}/{participant_count}",
+                "test_pass_rate": f"{passed_tests}/{len(test_results)}",
+                "photos_included": bool(training_report)
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate AI report: {str(e)}")
+
 # Trainer Checklist Routes
 @api_router.post("/trainer-checklist/submit")
 async def submit_trainer_checklist(checklist_data: TrainerChecklistSubmit, current_user: User = Depends(get_current_user)):
