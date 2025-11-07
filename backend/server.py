@@ -491,7 +491,7 @@ async def find_or_create_user(user_data: dict, role: str, company_id: str) -> di
         
         user_doc = new_user.model_dump()
         user_doc["created_at"] = user_doc["created_at"].isoformat()
-        user_doc["hashed_password"] = hashed_password
+        user_doc["password"] = hashed_password
         
         await db.users.insert_one(user_doc)
         
