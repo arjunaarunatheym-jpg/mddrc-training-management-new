@@ -1029,29 +1029,48 @@ const CoordinatorDashboard = ({ user, onLogout }) => {
                   <Card className="md:col-span-2">
                     <CardHeader>
                       <CardTitle>Test Results Overview</CardTitle>
+                      <CardDescription>Recent test submissions and scores</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {testResults.length === 0 ? (
-                          <p className="text-gray-500 text-center py-8">No test results yet</p>
+                        {!testResults || testResults.length === 0 ? (
+                          <div className="text-center py-8">
+                            <FileText className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+                            <p className="text-gray-500">No test results yet</p>
+                            <p className="text-sm text-gray-400 mt-1">Results will appear when participants complete tests</p>
+                          </div>
                         ) : (
-                          testResults.slice(0, 5).map((result, idx) => (
-                            <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                              <div>
-                                <p className="font-medium text-sm">
-                                  {participants.find(p => p.id === result.participant_id)?.full_name || 'Unknown'}
-                                </p>
-                                <p className="text-xs text-gray-600">
-                                  Score: {result.correct_answers}/{result.total_questions}
-                                </p>
+                          testResults.slice(0, 8).map((result, idx) => {
+                            const participant = participants.find(p => p.id === result.participant_id);
+                            const scorePercentage = result.total_questions > 0 
+                              ? ((result.correct_answers / result.total_questions) * 100).toFixed(0)
+                              : 0;
+                            
+                            return (
+                              <div key={idx} className="flex justify-between items-center p-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg border">
+                                <div className="flex-1">
+                                  <p className="font-semibold text-sm">
+                                    {participant?.full_name || 'Unknown Participant'}
+                                  </p>
+                                  <div className="flex items-center gap-3 mt-1">
+                                    <p className="text-xs text-gray-600">
+                                      {result.test_type === 'pre' ? '📝 Pre-Test' : '📋 Post-Test'}
+                                    </p>
+                                    <p className="text-xs text-gray-600">
+                                      Score: {result.correct_answers}/{result.total_questions} ({scorePercentage}%)
+                                    </p>
+                                  </div>
+                                </div>
+                                <span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${
+                                  result.passed 
+                                    ? 'bg-green-100 text-green-800 border-green-300' 
+                                    : 'bg-red-100 text-red-800 border-red-300'
+                                }`}>
+                                  {result.passed ? '✓ PASSED' : '✗ FAILED'}
+                                </span>
                               </div>
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                result.passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                              }`}>
-                                {result.passed ? 'Passed' : 'Failed'}
-                              </span>
-                            </div>
-                          ))
+                            );
+                          })
                         )}
                       </div>
                     </CardContent>
