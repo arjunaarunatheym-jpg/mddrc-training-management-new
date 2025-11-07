@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Users, FileText, Calendar, LogOut, CheckCircle2 } from "lucide-react";
-import ReactMarkdown from 'react-markdown';
+import { Users, FileText, Calendar, LogOut, CheckCircle2, Clock } from "lucide-react";
+import { useTheme } from "../context/ThemeContext";
 
 const SupervisorDashboard = ({ user, onLogout }) => {
+  const { primaryColor } = useTheme();
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [attendance, setAttendance] = useState([]);
-  const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,8 +21,17 @@ const SupervisorDashboard = ({ user, onLogout }) => {
   const loadSessions = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get('/supervisor/sessions');
-      setSessions(response.data);
+      const response = await axiosInstance.get('/sessions');
+      // Filter sessions where user is supervisor
+      const supervisorSessions = response.data.filter(s => 
+        s.supervisor_ids && s.supervisor_ids.includes(user.id)
+      );
+      setSessions(supervisorSessions);
+      
+      if (supervisorSessions.length > 0) {
+        setSelectedSession(supervisorSessions[0]);
+        loadAttendance(supervisorSessions[0].id);
+      }
       setLoading(false);
     } catch (error) {
       toast.error("Failed to load sessions");
@@ -32,192 +41,179 @@ const SupervisorDashboard = ({ user, onLogout }) => {
 
   const loadAttendance = async (sessionId) => {
     try {
-      const response = await axiosInstance.get(`/supervisor/attendance/${sessionId}`);
+      const response = await axiosInstance.get(`/attendance/session/${sessionId}`);
       setAttendance(response.data);
     } catch (error) {
       toast.error("Failed to load attendance");
+      setAttendance([]);
     }
   };
 
-  const loadReport = async (sessionId) => {
-    try {
-      const response = await axiosInstance.get(`/reports/session/${sessionId}`);
-      setReport(response.data);
-    } catch (error) {
-      setReport(null);
-      toast.error("No published report available yet");
-    }
-  };
-
-  const handleSessionSelect = (session) => {
+  const handleSessionChange = (session) => {
     setSelectedSession(session);
     loadAttendance(session.id);
-    loadReport(session.id);
   };
 
+  // Group attendance by participant
+  const groupedAttendance = attendance.reduce((acc, record) => {
+    if (!acc[record.participant_id]) {
+      acc[record.participant_id] = {
+        participant_name: record.participant_name || 'Unknown',
+        participant_email: record.participant_email || '',
+        records: []
+      };
+    }
+    acc[record.participant_id].records.push(record);
+    return acc;
+  }, {});
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Supervisor Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Supervisor Portal</h1>
             <p className="text-sm text-gray-600">Welcome, {user.full_name}</p>
           </div>
-          <Button onClick={onLogout} variant="outline">
-            <LogOut className="w-4 h-4 mr-2" />
+          <Button
+            onClick={onLogout}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
             Logout
           </Button>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-7xl mx-auto p-6">
-        <Tabs defaultValue="sessions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="sessions">
-              <Calendar className="w-4 h-4 mr-2" />
-              Training Sessions
-            </TabsTrigger>
-            <TabsTrigger value="attendance">
-              <Users className="w-4 h-4 mr-2" />
-              Attendance
-            </TabsTrigger>
-            <TabsTrigger value="reports">
-              <FileText className="w-4 h-4 mr-2" />
-              Training Reports
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Sessions Tab */}
-          <TabsContent value="sessions">
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        ) : sessions.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Users className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-500">No sessions assigned yet</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            {/* Session Selector */}
             <Card>
               <CardHeader>
-                <CardTitle>My Training Sessions</CardTitle>
-                <CardDescription>Training sessions for your company staff</CardDescription>
+                <CardTitle>My Sessions</CardTitle>
+                <CardDescription>Select a session to view attendance details</CardDescription>
               </CardHeader>
               <CardContent>
-                {loading ? (
-                  <p className="text-center py-12 text-gray-500">Loading...</p>
-                ) : sessions.length === 0 ? (
-                  <p className="text-center py-12 text-gray-500">No sessions assigned</p>
-                ) : (
-                  <div className="space-y-4">
-                    {sessions.map((session) => (
-                      <Card 
-                        key={session.id} 
-                        className={`cursor-pointer border-l-4 ${
-                          selectedSession?.id === session.id 
-                            ? 'border-l-blue-500 bg-blue-50' 
-                            : 'border-l-gray-300'
-                        }`}
-                        onClick={() => handleSessionSelect(session)}
-                      >
-                        <CardHeader>
-                          <CardTitle className="text-lg">{session.name}</CardTitle>
-                          <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 mt-2">
-                            <div>📍 {session.location}</div>
-                            <div>📅 {new Date(session.start_date).toLocaleDateString()}</div>
-                          </div>
-                        </CardHeader>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Attendance Tab */}
-          <TabsContent value="attendance">
-            <Card>
-              <CardHeader>
-                <CardTitle>Staff Attendance</CardTitle>
-                <CardDescription>
-                  {selectedSession ? `Attendance for ${selectedSession.name}` : 'Select a session to view attendance'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {!selectedSession ? (
-                  <p className="text-center py-12 text-gray-500">Select a session to view attendance</p>
-                ) : attendance.length === 0 ? (
-                  <p className="text-center py-12 text-gray-500">No attendance records yet</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-2 text-left">Participant</th>
-                          <th className="px-4 py-2 text-left">Clock In</th>
-                          <th className="px-4 py-2 text-left">Clock Out</th>
-                          <th className="px-4 py-2 text-left">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {attendance.map((record, idx) => (
-                          <tr key={idx} className="border-b">
-                            <td className="px-4 py-2">
-                              <div>
-                                <p className="font-semibold">{record.participant_name}</p>
-                                <p className="text-sm text-gray-600">{record.participant_email}</p>
-                              </div>
-                            </td>
-                            <td className="px-4 py-2">
-                              {record.clock_in_time ? new Date(record.clock_in_time).toLocaleString() : '-'}
-                            </td>
-                            <td className="px-4 py-2">
-                              {record.clock_out_time ? new Date(record.clock_out_time).toLocaleString() : '-'}
-                            </td>
-                            <td className="px-4 py-2">
-                              {record.clock_out_time ? (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                                  Complete
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
-                                  In Progress
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Reports Tab */}
-          <TabsContent value="reports">
-            <Card>
-              <CardHeader>
-                <CardTitle>Training Report</CardTitle>
-                <CardDescription>
-                  {selectedSession ? `Report for ${selectedSession.name}` : 'Select a session to view report'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {!selectedSession ? (
-                  <p className="text-center py-12 text-gray-500">Select a session to view report</p>
-                ) : !report ? (
-                  <p className="text-center py-12 text-gray-500">Report not yet published by coordinator</p>
-                ) : (
-                  <div className="prose max-w-none">
-                    <div className="mb-4 p-4 bg-green-100 rounded-lg">
-                      <p className="text-sm text-green-800">
-                        📄 Published on: {new Date(report.published_at).toLocaleString()}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {sessions.map((session) => (
+                    <button
+                      key={session.id}
+                      onClick={() => handleSessionChange(session)}
+                      className={`p-4 rounded-lg border-2 text-left transition-all ${
+                        selectedSession?.id === session.id
+                          ? 'border-purple-500 bg-purple-50'
+                          : 'border-gray-200 hover:border-purple-300'
+                      }`}
+                    >
+                      <h3 className="font-semibold text-gray-900">{session.name}</h3>
+                      <p className="text-sm text-gray-600 mt-1">{session.location}</p>
+                      <p className="text-xs text-gray-500 mt-2">
+                        {new Date(session.start_date).toLocaleDateString()} - {new Date(session.end_date).toLocaleDateString()}
                       </p>
-                    </div>
-                    <ReactMarkdown>{report.content}</ReactMarkdown>
-                  </div>
-                )}
+                    </button>
+                  ))}
+                </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+
+            {/* Attendance View */}
+            {selectedSession && (
+              <Tabs defaultValue="attendance" className="space-y-4">
+                <TabsList>
+                  <TabsTrigger value="attendance">
+                    <Clock className="w-4 h-4 mr-2" />
+                    Attendance
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="attendance">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Attendance Records - {selectedSession.name}</CardTitle>
+                      <CardDescription>
+                        View all participant attendance for this session
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {Object.keys(groupedAttendance).length === 0 ? (
+                        <div className="text-center py-12">
+                          <Calendar className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                          <p className="text-gray-500">No attendance records yet</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          {Object.entries(groupedAttendance).map(([participantId, data]) => (
+                            <div key={participantId} className="border rounded-lg p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
+                              <div className="flex justify-between items-start mb-3">
+                                <div>
+                                  <h3 className="font-semibold text-gray-900">{data.participant_name}</h3>
+                                  <p className="text-sm text-gray-600">{data.participant_email}</p>
+                                </div>
+                                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                                  {data.records.length} day(s)
+                                </span>
+                              </div>
+                              
+                              {/* Attendance Records */}
+                              <div className="space-y-2">
+                                {data.records.map((record, idx) => (
+                                  <div key={idx} className="flex items-center justify-between p-3 bg-white rounded border">
+                                    <div className="flex items-center gap-4">
+                                      <div>
+                                        <p className="text-sm font-medium text-gray-900">
+                                          {new Date(record.date).toLocaleDateString()}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                      <div className="text-sm">
+                                        <span className="text-gray-600">In:</span>
+                                        <span className={`ml-2 font-medium ${
+                                          record.clock_in ? 'text-green-600' : 'text-gray-400'
+                                        }`}>
+                                          {record.clock_in || '-'}
+                                        </span>
+                                      </div>
+                                      <div className="text-sm">
+                                        <span className="text-gray-600">Out:</span>
+                                        <span className={`ml-2 font-medium ${
+                                          record.clock_out ? 'text-red-600' : 'text-gray-400'
+                                        }`}>
+                                          {record.clock_out || '-'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            )}
+          </div>
+        )}
+      </main>
     </div>
   );
 };
