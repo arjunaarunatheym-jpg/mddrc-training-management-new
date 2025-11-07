@@ -227,15 +227,40 @@ const AdminDashboard = ({ user, onLogout }) => {
 
   const handleAddParticipant = () => {
     if (!newParticipant.email || !newParticipant.password || !newParticipant.full_name || !newParticipant.id_number) {
-      toast.error("Please fill all participant fields");
+      toast.error("Please fill all required fields (name, email, password, ID number)");
       return;
     }
     setSessionForm({
       ...sessionForm,
       participants: [...sessionForm.participants, { ...newParticipant }],
     });
-    setNewParticipant({ email: "", password: "", full_name: "", id_number: "" });
-    toast.success("Participant added to list");
+    setNewParticipant({ email: "", password: "", full_name: "", id_number: "", phone_number: "" });
+    setParticipantMatchStatus(null);
+    
+    if (participantMatchStatus?.exists) {
+      toast.success(`✓ Existing participant "${newParticipant.full_name}" will be linked to this session`);
+    } else {
+      toast.success(`New participant "${newParticipant.full_name}" added to list`);
+    }
+  };
+
+  const handleAddSupervisor = () => {
+    if (!newSupervisor.email || !newSupervisor.password || !newSupervisor.full_name || !newSupervisor.id_number) {
+      toast.error("Please fill all required fields (name, email, password, ID number)");
+      return;
+    }
+    setSessionForm({
+      ...sessionForm,
+      supervisors: [...sessionForm.supervisors, { ...newSupervisor }],
+    });
+    setNewSupervisor({ email: "", password: "", full_name: "", id_number: "", phone_number: "" });
+    setSupervisorMatchStatus(null);
+    
+    if (supervisorMatchStatus?.exists) {
+      toast.success(`✓ Existing supervisor "${newSupervisor.full_name}" will be linked to this session`);
+    } else {
+      toast.success(`New supervisor "${newSupervisor.full_name}" added to list`);
+    }
   };
 
   const handleRemoveParticipant = (index) => {
