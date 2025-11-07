@@ -1610,20 +1610,50 @@ async def get_assigned_participants(session_id: str, current_user: User = Depend
         return []
     
     # Find chief trainer
-    chief_trainer = next((t['trainer_id'] for t in trainer_assignments if t.get('role') == 'chief'), None)
+    chief_trainers = [t['trainer_id'] for t in trainer_assignments if t.get('role') == 'chief']
+    regular_trainers = [t['trainer_id'] for t in trainer_assignments if t.get('role') != 'chief']
     
-    # Calculate assignment
-    participants_per_trainer = total_participants // total_trainers
-    remainder = total_participants % total_trainers
-    
-    # Assign participants
-    current_trainer_index = trainers.index(current_user.id)
-    start_index = current_trainer_index * participants_per_trainer
-    
-    # Chief trainer gets fewer
-    if chief_trainer and current_user.id == chief_trainer:
-        assigned_count = max(participants_per_trainer - 1, 0)
+    # Chief trainers get MORE participants, regular trainers get FEWER
+    if chief_trainers:
+        # Allocate more to chief trainers
+        total_chief = len(chief_trainers)
+        total_regular = len(regular_trainers)
+        
+        # Give 60% to chiefs, 40% to regulars (or all to chiefs if only chiefs)
+        if total_regular > 0:
+            participants_for_chiefs = int(total_participants * 0.6)
+            participants_for_regular = total_participants - participants_for_chiefs
+            
+            if current_user.id in chief_trainers:
+                participants_per_chief = participants_for_chiefs // total_chief if total_chief > 0 else 0
+                chief_index = chief_trainers.index(current_user.id)
+                start_index = chief_index * participants_per_chief
+                assigned_count = participants_per_chief
+                # Give remainder to first chief
+                if chief_index == 0:
+                    assigned_count += participants_for_chiefs % total_chief
+            else:
+                participants_per_regular = participants_for_regular // total_regular if total_regular > 0 else 0
+                regular_index = regular_trainers.index(current_user.id)
+                start_index = int(total_participants * 0.6) + (regular_index * participants_per_regular)
+                assigned_count = participants_per_regular
+                # Give remainder to first regular
+                if regular_index == 0:
+                    assigned_count += participants_for_regular % total_regular
+        else:
+            # Only chief trainers
+            participants_per_chief = total_participants // total_chief
+            chief_index = chief_trainers.index(current_user.id)
+            start_index = chief_index * participants_per_chief
+            assigned_count = participants_per_chief
+            if chief_index < (total_participants % total_chief):
+                assigned_count += 1
     else:
+        # No chief trainers, divide equally
+        participants_per_trainer = total_participants // total_trainers
+        remainder = total_participants % total_trainers
+        current_trainer_index = trainers.index(current_user.id)
+        start_index = current_trainer_index * participants_per_trainer
         assigned_count = participants_per_trainer
         if current_trainer_index < remainder:
             assigned_count += 1
