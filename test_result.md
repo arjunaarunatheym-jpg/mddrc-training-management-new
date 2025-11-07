@@ -292,6 +292,18 @@ frontend:
         agent: "main"
         comment: "Added Preview button alongside Download button in both Overview tab (for sessions with feedback submitted) and Certificates tab. Preview button is blue with Eye icon. Uses authenticated blob download via axiosInstance to handle authorization. Opens certificate in new tab. Both Preview and Download buttons work independently. Download button changed to show Download icon instead of Award icon for consistency. Ready for frontend testing."
 
+  - task: "Automatic user detection and reusability for session creation"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py, /app/frontend/src/pages/AdminDashboard.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented find-or-create logic for participants and supervisors during session creation. Backend: Added phone_number to User model, created find_or_create_user helper that matches by name+(email OR phone), updates existing users or creates new ones. Modified session creation endpoint to accept participants/supervisors arrays and return is_existing flags. Added /users/check-exists endpoint for real-time feedback. Frontend: Added phone_number fields, real-time checking with 500ms debounce, visual indicators showing when existing users are found, success messages with linked vs created counts. Users are now reusable across sessions. Ready for backend testing first."
+
   - task: "Admin Dashboard - Session Delete Functionality"
     implemented: true
     working: "NA"
