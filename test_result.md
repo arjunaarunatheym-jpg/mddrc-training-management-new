@@ -324,7 +324,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Certificate preview UI integration"
+    - "Automatic user detection and reusability for session creation"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
