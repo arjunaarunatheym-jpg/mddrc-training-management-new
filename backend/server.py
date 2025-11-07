@@ -219,6 +219,7 @@ class TestSubmit(BaseModel):
     test_id: str
     session_id: str
     answers: List[int]
+    question_indices: Optional[List[int]] = None  # Original question indices for shuffled tests
 
 class ChecklistTemplate(BaseModel):
     model_config = ConfigDict(extra="ignore")
