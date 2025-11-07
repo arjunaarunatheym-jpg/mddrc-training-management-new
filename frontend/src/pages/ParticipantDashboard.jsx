@@ -219,8 +219,8 @@ const ParticipantDashboard = ({ user, onLogout }) => {
           setAttendanceToday(prev => ({
             ...prev,
             [sessionId]: {
-              clock_in: !!todayAttendance.clock_in_time,
-              clock_out: !!todayAttendance.clock_out_time
+              clock_in: !!todayAttendance.clock_in,
+              clock_out: !!todayAttendance.clock_out
             }
           }));
         }
