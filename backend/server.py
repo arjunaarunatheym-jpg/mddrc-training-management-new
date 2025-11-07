@@ -2811,13 +2811,14 @@ Generate a professional training report with the following sections:
 2. Training Overview (objectives, dates, location, participants)
 3. Pre-Training Assessment (detailed analysis of pre-test results)
 4. Post-Training Assessment (detailed analysis of post-test results, comparison with pre-test)
-5. Vehicle Inspection Findings (summary of checklist results)
+5. Vehicle Inspection Findings (IMPORTANT: List each participant by NAME with their specific vehicle items that need repair and the detailed comments provided. Format as: "**Participant Name**: Item Name - Comment")
 6. Participant Feedback (summary of feedback responses)
 7. Key Observations and Recommendations
 8. Conclusion
 
 Use professional language, include data-driven insights, and provide actionable recommendations for the company.
-Format using Markdown with proper headings and bullet points."""
+Format using Markdown with proper headings and bullet points.
+CRITICAL: In the Vehicle Inspection section, ensure you use the participant names and item names from the DETAILED CHECKLIST ISSUES data provided above. Do not use "undefined" or generic placeholders."""
 
     # Call GPT-5
     try:
