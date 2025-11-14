@@ -1751,7 +1751,9 @@ async def get_session_attendance(session_id: str, current_user: User = Depends(g
         raise HTTPException(status_code=404, detail="Session not found")
     
     # Get all attendance records for the session
+    logging.info(f"Querying attendance for session_id: {session_id}")
     attendance_records = await db.attendance.find({"session_id": session_id}, {"_id": 0}).to_list(1000)
+    logging.info(f"Found {len(attendance_records)} attendance records")
     
     # Get participant details
     participant_ids = list(set([r['participant_id'] for r in attendance_records]))
