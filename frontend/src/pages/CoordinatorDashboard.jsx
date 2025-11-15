@@ -76,6 +76,7 @@ const CoordinatorDashboard = ({ user, onLogout }) => {
 
   useEffect(() => {
     loadSessions();
+    loadCoordinatorFeedbackTemplate();
   }, []);
 
   const loadSessions = async () => {
