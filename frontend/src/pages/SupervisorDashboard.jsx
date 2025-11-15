@@ -244,6 +244,80 @@ const SupervisorDashboard = ({ user, onLogout }) => {
           </TabsContent>
 
 
+          {/* Reports Tab */}
+          <TabsContent value="reports">
+            <Card>
+              <CardHeader>
+                <CardTitle>Training Reports</CardTitle>
+                <CardDescription>View submitted training reports for your sessions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingReports ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Loading reports...</p>
+                  </div>
+                ) : reports.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FileText className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                    <p className="text-gray-500">No training reports submitted yet</p>
+                    <p className="text-sm text-gray-400 mt-2">Reports will appear here once coordinators submit them</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {reports.map((report) => (
+                      <div
+                        key={report.session_id}
+                        className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-gray-900">{report.session_name}</h3>
+                            <div className="mt-2 space-y-1">
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">Dates:</span> {report.session_start_date} to {report.session_end_date}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">Location:</span> {report.location || 'N/A'}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">Submitted:</span> {report.submitted_at ? new Date(report.submitted_at).toLocaleDateString() : 'N/A'}
+                              </p>
+                              <p className="text-sm">
+                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                                  ✓ Submitted
+                                </span>
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Button
+                              onClick={() => window.open(`${process.env.REACT_APP_BACKEND_URL}${report.pdf_url}`, '_blank')}
+                              variant="outline"
+                              size="sm"
+                            >
+                              <FileText className="w-4 h-4 mr-2" />
+                              View Report
+                            </Button>
+                            <Button
+                              onClick={() => downloadReport(report)}
+                              className="bg-blue-600 hover:bg-blue-700"
+                              size="sm"
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Download PDF
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+
+
           {/* Attendance Tab */}
           <TabsContent value="attendance">
             <Card>
