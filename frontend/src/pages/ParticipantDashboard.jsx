@@ -593,25 +593,58 @@ const ParticipantDashboard = ({ user, onLogout }) => {
                         {/* Attendance */}
                         <div>
                           <h3 className="font-semibold text-gray-900 mb-3">Attendance</h3>
-                          <div className="flex gap-3">
-                            <Button
-                              onClick={() => handleClockIn(session.id)}
-                              disabled={attendance.clock_in}
-                              className="bg-green-600 hover:bg-green-700"
-                              data-testid={`clock-in-${session.id}`}
-                            >
-                              <Clock className="w-4 h-4 mr-2" />
-                              {attendance.clock_in ? "Clocked In ✓" : "Clock In"}
-                            </Button>
-                            <Button
-                              onClick={() => handleClockOut(session.id)}
-                              disabled={!attendance.clock_in || attendance.clock_out}
-                              variant="outline"
-                              data-testid={`clock-out-${session.id}`}
-                            >
-                              <Clock className="w-4 h-4 mr-2" />
-                              {attendance.clock_out ? "Clocked Out ✓" : "Clock Out"}
-                            </Button>
+                          <div className="space-y-3">
+                            {/* Clock In Checkbox */}
+                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                              <input
+                                type="checkbox"
+                                id={`clock-in-${session.id}`}
+                                checked={!!attendance.clock_in}
+                                onChange={() => {
+                                  if (!attendance.clock_in) {
+                                    handleClockIn(session.id);
+                                  }
+                                }}
+                                className="w-5 h-5 text-green-600 rounded focus:ring-2 focus:ring-green-500"
+                                data-testid={`clock-in-${session.id}`}
+                              />
+                              <label htmlFor={`clock-in-${session.id}`} className="flex-1 cursor-pointer">
+                                <span className="font-medium text-gray-900">Clock In</span>
+                                {attendance.clock_in && (
+                                  <span className="ml-2 text-sm text-green-600">✓ Clocked in at {attendance.clock_in}</span>
+                                )}
+                              </label>
+                            </div>
+
+                            {/* Clock Out Checkbox */}
+                            <div className={`flex items-center gap-3 p-3 rounded-lg border ${
+                              attendance.clock_in 
+                                ? 'bg-blue-50 border-blue-200' 
+                                : 'bg-gray-100 border-gray-200 opacity-50'
+                            }`}>
+                              <input
+                                type="checkbox"
+                                id={`clock-out-${session.id}`}
+                                checked={!!attendance.clock_out}
+                                onChange={() => {
+                                  if (attendance.clock_in && !attendance.clock_out) {
+                                    handleClockOut(session.id);
+                                  }
+                                }}
+                                disabled={!attendance.clock_in}
+                                className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                                data-testid={`clock-out-${session.id}`}
+                              />
+                              <label htmlFor={`clock-out-${session.id}`} className={`flex-1 ${attendance.clock_in ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
+                                <span className="font-medium text-gray-900">Clock Out</span>
+                                {attendance.clock_out && (
+                                  <span className="ml-2 text-sm text-blue-600">✓ Clocked out at {attendance.clock_out}</span>
+                                )}
+                                {!attendance.clock_in && (
+                                  <span className="ml-2 text-xs text-gray-500">(Clock in first)</span>
+                                )}
+                              </label>
+                            </div>
                           </div>
                         </div>
 
