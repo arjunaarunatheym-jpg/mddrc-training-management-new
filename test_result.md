@@ -304,6 +304,21 @@ frontend:
         agent: "main"
         comment: "USER REPORTED ISSUES: 1) Release toggle switches revert to OFF after enabling, 2) Session Summary showing all 0s, 3) Participant list empty, 4) Analytics showing all 0s. FIXES IMPLEMENTED: 1) Fixed field name mismatch - changed from 'can_take_pre_test/can_take_post_test/can_submit_feedback' to 'can_access_pre_test/can_access_post_test/can_access_feedback' to match backend ParticipantAccess model. This should make toggles stay ON. 2) Replaced simple participant list with detailed table showing: Participant Name, ID Number, Pre-Test (Pass/Fail + Score), Post-Test (Pass/Fail + Score), Feedback Status (Submitted/Not Submitted). 3) Added debug console.log statements to track data loading. Session Summary and Analytics calculations are correct - issue was likely data not loading due to field mismatch and poor visibility. Ready for frontend testing."
 
+  - task: "Participant Dashboard - Remove redundant certificate buttons"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/ParticipantDashboard.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "user"
+        comment: "USER REPORTED: Preview and Download certificate buttons on main session cards are redundant since certificate functionality is now in dedicated Certificates tab. Requested removal of these buttons from session cards."
+      - working: "NA"
+        agent: "main"
+        comment: "FIXED: Removed Preview and Download certificate buttons (lines 395-416) from the session cards in Overview tab. Now only 'Submit Feedback' button and '✓ Feedback Submitted' status indicator remain on session cards. All certificate functionality is now exclusively in the Certificates tab as intended."
+
   - task: "Automatic user detection and reusability for session creation - Updated"
     implemented: true
     working: "NA"
