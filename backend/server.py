@@ -1874,21 +1874,21 @@ async def create_training_report(report_data: TrainingReportCreate, current_user
     await db.training_reports.insert_one(doc)
     return report_obj
 
-@api_router.get("/training-reports/{session_id}", response_model=TrainingReport)
+@api_router.get("/training-reports/{session_id}")
 async def get_training_report(session_id: str, current_user: User = Depends(get_current_user)):
     """Get training report for a session"""
     report = await db.training_reports.find_one({"session_id": session_id}, {"_id": 0})
     
     if not report:
-        # Return empty report structure
-        return TrainingReport(session_id=session_id, coordinator_id=current_user.id, status="draft")
+        # Return 404 instead of empty structure
+        raise HTTPException(status_code=404, detail="Training report not found")
     
     if isinstance(report.get('created_at'), str):
         report['created_at'] = datetime.fromisoformat(report['created_at'])
     if isinstance(report.get('submitted_at'), str) and report.get('submitted_at'):
         report['submitted_at'] = datetime.fromisoformat(report['submitted_at'])
     
-    return TrainingReport(**report)
+    return report
 
 @api_router.get("/training-reports/coordinator/{coordinator_id}")
 async def get_coordinator_reports(coordinator_id: str, current_user: User = Depends(get_current_user)):
