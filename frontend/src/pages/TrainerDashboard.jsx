@@ -31,10 +31,19 @@ const TrainerDashboard = ({ user, onLogout }) => {
       const mySessions = response.data.filter(session => 
         session.trainer_assignments && session.trainer_assignments.some(t => t.trainer_id === user.id)
       );
-      setSessions(mySessions);
+      
+      // Filter out past sessions (only show current/upcoming sessions)
+      const now = new Date();
+      const currentSessions = mySessions.filter(session => {
+        if (!session.end_date) return true; // Include if no end date
+        const endDate = new Date(session.end_date);
+        return endDate >= now; // Include if end date is today or in the future
+      });
+      
+      setSessions(currentSessions);
       
       // Load participants for each session
-      for (const session of mySessions) {
+      for (const session of currentSessions) {
         loadSessionParticipants(session.id);
       }
     } catch (error) {
