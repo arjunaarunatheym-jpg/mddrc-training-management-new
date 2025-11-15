@@ -535,13 +535,24 @@ const CoordinatorDashboard = ({ user, onLogout }) => {
     a.findIndex(t => t.participant_id === v.participant_id) === i
   ).length;
   
+  // Separate pre-test and post-test results
+  const preTestResults = testResults.filter(r => r.test_type === 'pre');
+  const postTestResults = testResults.filter(r => r.test_type === 'post');
+  
   const stats = {
     totalParticipants: participants.length,
     attendanceRate: participants.length > 0 
       ? ((uniqueParticipantsWithAttendance / participants.length) * 100).toFixed(0)
       : 0,
-    testPassRate: testResults.length > 0
-      ? ((testResults.filter(r => r.passed).length / testResults.length) * 100).toFixed(0)
+    preTestPassRate: preTestResults.length > 0
+      ? ((preTestResults.filter(r => r.passed).length / preTestResults.length) * 100).toFixed(0)
+      : 0,
+    postTestPassRate: postTestResults.length > 0
+      ? ((postTestResults.filter(r => r.passed).length / postTestResults.length) * 100).toFixed(0)
+      : 0,
+    improvement: (preTestResults.length > 0 && postTestResults.length > 0)
+      ? (((postTestResults.filter(r => r.passed).length / postTestResults.length) - 
+          (preTestResults.filter(r => r.passed).length / preTestResults.length)) * 100).toFixed(0)
       : 0,
     totalTestsTaken: testResults.length
   };
