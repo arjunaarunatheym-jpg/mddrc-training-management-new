@@ -865,7 +865,12 @@ startxref
         coordinator_headers = {'Authorization': f'Bearer {self.coordinator_token}'}
         
         try:
-            response = self.session.get(self.uploaded_pdf_url, headers=coordinator_headers)
+            # Fix relative URL by adding base URL
+            pdf_url = self.uploaded_pdf_url
+            if pdf_url.startswith('/api/'):
+                pdf_url = BASE_URL.replace('/api', '') + self.uploaded_pdf_url
+            
+            response = self.session.get(pdf_url, headers=coordinator_headers)
             if response.status_code == 200:
                 content_length = len(response.content)
                 content_type = response.headers.get('content-type', '')
