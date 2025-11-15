@@ -16,6 +16,7 @@ const SupervisorDashboard = ({ user, onLogout }) => {
 
   useEffect(() => {
     loadData();
+    loadReports();
   }, []);
 
   const loadData = async () => {
