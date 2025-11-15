@@ -2588,6 +2588,25 @@ async def submit_trainer_checklist(checklist_data: TrainerChecklistSubmit, curre
     
     await db.vehicle_checklists.insert_one(doc)
     
+    # If chief trainer submitted comments, save to session
+    if checklist_data.chief_trainer_comments:
+        session = await db.sessions.find_one({"id": checklist_data.session_id}, {"_id": 0})
+        if session:
+            # Check if current trainer is chief
+            trainer_assignments = session.get('trainer_assignments', [])
+            is_chief = any(t['trainer_id'] == current_user.id and t.get('role') == 'chief' for t in trainer_assignments)
+            
+            if is_chief:
+                await db.sessions.update_one(
+                    {"id": checklist_data.session_id},
+                    {"$set": {
+                        "chief_trainer_comments": checklist_data.chief_trainer_comments,
+                        "chief_trainer_id": current_user.id,
+                        "chief_trainer_name": current_user.full_name,
+                        "comments_submitted_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+    
     return {"message": "Checklist submitted successfully", "checklist_id": checklist_obj.id}
 
 @api_router.get("/trainer-checklist/{session_id}/assigned-participants")
