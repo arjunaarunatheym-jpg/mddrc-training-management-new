@@ -2357,7 +2357,7 @@ async def generate_docx_report(session_id: str, current_user: User = Depends(get
         doc.add_page_break()
         
         # RECOMMENDATIONS
-        doc.add_heading('9. RECOMMENDATIONS', 1)
+        doc.add_heading('10. RECOMMENDATIONS', 1)
         doc.add_paragraph("[Please add recommendations here]")
         doc.add_paragraph()
         doc.add_paragraph()
@@ -2365,7 +2365,7 @@ async def generate_docx_report(session_id: str, current_user: User = Depends(get
         doc.add_page_break()
         
         # SIGNATURES
-        doc.add_heading('10. SIGNATURES', 1)
+        doc.add_heading('11. SIGNATURES', 1)
         doc.add_paragraph()
         doc.add_paragraph("_" * 40)
         doc.add_paragraph(f"Coordinator: {current_user.full_name}")
