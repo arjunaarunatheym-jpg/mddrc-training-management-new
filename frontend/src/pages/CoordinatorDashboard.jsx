@@ -19,6 +19,7 @@ const CoordinatorDashboard = ({ user, onLogout }) => {
   const [trainers, setTrainers] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [testResults, setTestResults] = useState([]);
+  const [courseFeedback, setCourseFeedback] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // Training Report states
