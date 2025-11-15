@@ -2097,8 +2097,14 @@ async def generate_docx_report(session_id: str, current_user: User = Depends(get
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
         
-        program = await db.programs.find_one({"id": session['program_id']}, {"_id": 0})
-        company = await db.companies.find_one({"id": session['company_id']}, {"_id": 0})
+        program = await db.programs.find_one({"id": session.get('program_id')}, {"_id": 0}) if session.get('program_id') else None
+        company = await db.companies.find_one({"id": session.get('company_id')}, {"_id": 0}) if session.get('company_id') else None
+        
+        # Validate required data
+        if not program:
+            raise HTTPException(status_code=400, detail="Program not found for this session. Please ensure the session has a valid program assigned.")
+        if not company:
+            raise HTTPException(status_code=400, detail="Company not found for this session. Please ensure the session has a valid company assigned.")
         
         # Get participants with full details
         participant_ids = session.get('participant_ids', [])
