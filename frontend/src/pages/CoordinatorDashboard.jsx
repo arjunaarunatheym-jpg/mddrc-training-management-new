@@ -183,6 +183,7 @@ const CoordinatorDashboard = ({ user, onLogout }) => {
       setParticipants(sessionParticipants);
       setAttendance(attendanceRes.data || []);
       setTestResults(testResultsRes.data || []);
+      setCourseFeedback(feedbackRes.data || []);
       
       // Load session access controls
       await loadSessionAccess(sessionId);
