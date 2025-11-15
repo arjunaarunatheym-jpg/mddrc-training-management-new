@@ -21,7 +21,8 @@ const Settings = () => {
     company_name: "",
     primary_color: "#3b82f6",
     secondary_color: "#6366f1",
-    footer_text: ""
+    footer_text: "",
+    max_certificate_file_size_mb: 5
   });
 
   useEffect(() => {
