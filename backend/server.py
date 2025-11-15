@@ -182,6 +182,9 @@ class ParticipantAccess(BaseModel):
     post_test_completed: bool = False
     checklist_submitted: bool = False
     feedback_submitted: bool = False
+    certificate_url: Optional[str] = None
+    certificate_uploaded_at: Optional[str] = None
+    certificate_uploaded_by: Optional[str] = None
 
 class UpdateParticipantAccess(BaseModel):
     participant_id: str
