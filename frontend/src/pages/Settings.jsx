@@ -37,7 +37,8 @@ const Settings = () => {
         company_name: response.data.company_name || "",
         primary_color: response.data.primary_color || "#3b82f6",
         secondary_color: response.data.secondary_color || "#6366f1",
-        footer_text: response.data.footer_text || ""
+        footer_text: response.data.footer_text || "",
+        max_certificate_file_size_mb: response.data.max_certificate_file_size_mb || 5
       });
       setLoading(false);
     } catch (error) {
