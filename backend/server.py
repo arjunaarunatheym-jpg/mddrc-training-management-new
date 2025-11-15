@@ -1904,10 +1904,16 @@ async def get_session_attendance(session_id: str, current_user: User = Depends(g
     attendance_records = await db.attendance.find({"session_id": session_id}, {"_id": 0}).to_list(1000)
     logging.info(f"Found {len(attendance_records)} attendance records")
     
-    # Get participant details
-    participant_ids = list(set([r['participant_id'] for r in attendance_records]))
-    participants = await db.users.find({"id": {"$in": participant_ids}}, {"_id": 0}).to_list(1000)
-    participant_map = {p['id']: p for p in participants}
+    # Get participant details only if we have attendance records
+    participant_map = {}
+    if attendance_records:
+        participant_ids = list(set([r['participant_id'] for r in attendance_records]))
+        logging.info(f"Looking up {len(participant_ids)} unique participants")
+        
+        if participant_ids:  # Only query if we have IDs to look up
+            participants = await db.users.find({"id": {"$in": participant_ids}}, {"_id": 0}).to_list(1000)
+            participant_map = {p['id']: p for p in participants}
+            logging.info(f"Found {len(participants)} participant records")
     
     # Enrich attendance records with participant info
     for record in attendance_records:
@@ -1915,8 +1921,13 @@ async def get_session_attendance(session_id: str, current_user: User = Depends(g
             record['created_at'] = datetime.fromisoformat(record['created_at'])
         participant = participant_map.get(record['participant_id'])
         if participant:
-            record['participant_name'] = participant['full_name']
-            record['participant_email'] = participant['email']
+            record['participant_name'] = participant.get('full_name', 'Unknown')
+            record['participant_email'] = participant.get('email', '')
+        else:
+            # Still include record even if participant not found
+            record['participant_name'] = f"Participant {record['participant_id']}"
+            record['participant_email'] = ''
+            logging.warning(f"Could not find participant info for ID: {record['participant_id']}")
     
     return attendance_records
 
