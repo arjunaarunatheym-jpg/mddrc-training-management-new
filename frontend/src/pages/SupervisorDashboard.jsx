@@ -11,6 +11,8 @@ const SupervisorDashboard = ({ user, onLogout }) => {
   const [pendingChecklists, setPendingChecklists] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [attendance, setAttendance] = useState([]);
+  const [reports, setReports] = useState([]);
+  const [loadingReports, setLoadingReports] = useState(false);
 
   useEffect(() => {
     loadData();
