@@ -3625,6 +3625,58 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+@app.on_event("startup")
+async def setup_admin_account():
+    """Create or update admin account on startup"""
+    try:
+        # Admin credentials
+        admin_email = "arjuna@mddrc.com.my"
+        admin_password = "Dana102229"
+        admin_name = "System Administrator"
+        admin_id_number = "ADMIN001"
+        
+        # Check if admin exists
+        existing_admin = await db.users.find_one({"role": "admin"})
+        
+        # Hash password
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        hashed_password = pwd_context.hash(admin_password)
+        
+        if existing_admin:
+            # Update existing admin
+            await db.users.update_one(
+                {"role": "admin"},
+                {"$set": {
+                    "email": admin_email,
+                    "password": hashed_password,
+                    "full_name": admin_name,
+                    "id_number": admin_id_number
+                }}
+            )
+            logging.info(f"✅ Admin account updated: {admin_email}")
+        else:
+            # Create new admin
+            admin_doc = {
+                "id": str(uuid.uuid4()),
+                "email": admin_email,
+                "password": hashed_password,
+                "full_name": admin_name,
+                "id_number": admin_id_number,
+                "phone_number": "",
+                "role": "admin",
+                "company_id": None,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.users.insert_one(admin_doc)
+            logging.info(f"✅ Admin account created: {admin_email}")
+        
+        logging.info(f"🔐 Admin credentials: {admin_email} / {admin_password}")
+        
+    except Exception as e:
+        logging.error(f"❌ Failed to setup admin account: {str(e)}")
+
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
