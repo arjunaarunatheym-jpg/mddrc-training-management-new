@@ -77,6 +77,24 @@ const TrainerDashboard = ({ user, onLogout }) => {
     return assignment ? (assignment.role === "chief" ? "Chief Trainer" : "Regular Trainer") : "Trainer";
   };
 
+  // Check if user is chief trainer for any current session
+  const isChiefTrainerForAnySessions = () => {
+    return sessions.some(session => {
+      if (!session.trainer_assignments) return false;
+      const assignment = session.trainer_assignments.find(t => t.trainer_id === user.id);
+      return assignment && assignment.role === "chief";
+    });
+  };
+
+  // Get only sessions where user is chief trainer
+  const getChiefTrainerSessions = () => {
+    return sessions.filter(session => {
+      if (!session.trainer_assignments) return false;
+      const assignment = session.trainer_assignments.find(t => t.trainer_id === user.id);
+      return assignment && assignment.role === "chief";
+    });
+  };
+
 
   const loadFeedbackTemplate = async () => {
     try {
