@@ -796,8 +796,13 @@ startxref
             return self.record_test_result("upload_pdf_functionality", "Verify PDF Saved", False, "No uploaded PDF URL available")
         
         try:
+            # Fix relative URL by adding base URL
+            pdf_url = self.uploaded_pdf_url
+            if pdf_url.startswith('/api/'):
+                pdf_url = BASE_URL.replace('/api', '') + self.uploaded_pdf_url
+            
             # Try to access the uploaded PDF file
-            response = self.session.get(self.uploaded_pdf_url)
+            response = self.session.get(pdf_url)
             if response.status_code == 200:
                 content_type = response.headers.get('content-type', '')
                 if 'pdf' in content_type.lower() or response.content.startswith(b'%PDF'):
