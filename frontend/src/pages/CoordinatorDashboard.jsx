@@ -983,6 +983,44 @@ const CoordinatorDashboard = ({ user, onLogout }) => {
                                         <span className="text-gray-400 text-xs">Not submitted</span>
                                       )}
                                     </td>
+                                    <td className="p-3 text-center">
+                                      <div className="flex flex-col gap-2 items-center">
+                                        {access?.certificate_url ? (
+                                          <div className="flex flex-col gap-1 items-center">
+                                            <span className="px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-800">
+                                              ✓ Uploaded
+                                            </span>
+                                            <label 
+                                              htmlFor={`cert-${p.id}`}
+                                              className="cursor-pointer text-xs text-blue-600 hover:underline"
+                                            >
+                                              Replace
+                                            </label>
+                                          </div>
+                                        ) : (
+                                          <label 
+                                            htmlFor={`cert-${p.id}`}
+                                            className="cursor-pointer px-3 py-1 rounded text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                                          >
+                                            {uploadingCertificates[p.id] ? "Uploading..." : "Upload PDF"}
+                                          </label>
+                                        )}
+                                        <input
+                                          id={`cert-${p.id}`}
+                                          type="file"
+                                          accept=".pdf"
+                                          className="hidden"
+                                          onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                              handleCertificateUpload(p.id, file);
+                                            }
+                                            e.target.value = null; // Reset input
+                                          }}
+                                          disabled={uploadingCertificates[p.id]}
+                                        />
+                                      </div>
+                                    </td>
                                   </tr>
                                 );
                               })}
