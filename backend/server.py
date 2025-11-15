@@ -3126,6 +3126,170 @@ async def get_company_feedback(company_id: str, current_user: User = Depends(get
     
     return feedback
 
+
+
+# Coordinator & Chief Trainer Feedback Routes
+
+# Get Coordinator Feedback Template
+@api_router.get("/coordinator-feedback-template")
+async def get_coordinator_feedback_template(current_user: User = Depends(get_current_user)):
+    """Get coordinator feedback template"""
+    template = await db.feedback_templates.find_one({"id": "coordinator_feedback_template"}, {"_id": 0})
+    if not template:
+        # Create default template
+        default_template = CoordinatorFeedbackTemplate()
+        doc = default_template.model_dump()
+        doc['updated_at'] = doc['updated_at'].isoformat()
+        await db.feedback_templates.insert_one(doc)
+        return default_template
+    return template
+
+# Update Coordinator Feedback Template (Admin only)
+@api_router.put("/coordinator-feedback-template")
+async def update_coordinator_feedback_template(
+    template_update: FeedbackTemplateUpdate, 
+    current_user: User = Depends(get_current_user)
+):
+    """Update coordinator feedback template (admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can update feedback templates")
+    
+    await db.feedback_templates.update_one(
+        {"id": "coordinator_feedback_template"},
+        {
+            "$set": {
+                "questions": template_update.questions,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    return {"message": "Template updated successfully"}
+
+# Get Chief Trainer Feedback Template
+@api_router.get("/chief-trainer-feedback-template")
+async def get_chief_trainer_feedback_template(current_user: User = Depends(get_current_user)):
+    """Get chief trainer feedback template"""
+    template = await db.feedback_templates.find_one({"id": "chief_trainer_feedback_template"}, {"_id": 0})
+    if not template:
+        # Create default template
+        default_template = ChiefTrainerFeedbackTemplate()
+        doc = default_template.model_dump()
+        doc['updated_at'] = doc['updated_at'].isoformat()
+        await db.feedback_templates.insert_one(doc)
+        return default_template
+    return template
+
+# Update Chief Trainer Feedback Template (Admin only)
+@api_router.put("/chief-trainer-feedback-template")
+async def update_chief_trainer_feedback_template(
+    template_update: FeedbackTemplateUpdate, 
+    current_user: User = Depends(get_current_user)
+):
+    """Update chief trainer feedback template (admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can update feedback templates")
+    
+    await db.feedback_templates.update_one(
+        {"id": "chief_trainer_feedback_template"},
+        {
+            "$set": {
+                "questions": template_update.questions,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    return {"message": "Template updated successfully"}
+
+# Submit Coordinator Feedback
+@api_router.post("/coordinator-feedback/{session_id}")
+async def submit_coordinator_feedback(
+    session_id: str,
+    responses: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Submit coordinator feedback for a session"""
+    if current_user.role not in ["coordinator", "admin"]:
+        raise HTTPException(status_code=403, detail="Only coordinators and admins can submit coordinator feedback")
+    
+    # Check if feedback already exists
+    existing = await db.coordinator_feedback.find_one({"session_id": session_id}, {"_id": 0})
+    
+    feedback = CoordinatorFeedback(
+        session_id=session_id,
+        coordinator_id=current_user.id,
+        responses=responses
+    )
+    
+    doc = feedback.model_dump()
+    doc['submitted_at'] = doc['submitted_at'].isoformat()
+    
+    if existing:
+        # Update existing feedback
+        await db.coordinator_feedback.update_one(
+            {"session_id": session_id},
+            {"$set": doc}
+        )
+    else:
+        # Insert new feedback
+        await db.coordinator_feedback.insert_one(doc)
+    
+    return {"message": "Coordinator feedback submitted successfully", "feedback": feedback}
+
+# Get Coordinator Feedback for Session
+@api_router.get("/coordinator-feedback/{session_id}")
+async def get_coordinator_feedback(session_id: str, current_user: User = Depends(get_current_user)):
+    """Get coordinator feedback for a session"""
+    feedback = await db.coordinator_feedback.find_one({"session_id": session_id}, {"_id": 0})
+    if not feedback:
+        return None
+    return feedback
+
+# Submit Chief Trainer Feedback
+@api_router.post("/chief-trainer-feedback/{session_id}")
+async def submit_chief_trainer_feedback(
+    session_id: str,
+    responses: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Submit chief trainer feedback for a session"""
+    if current_user.role not in ["chief_trainer", "trainer", "admin"]:
+        raise HTTPException(status_code=403, detail="Only trainers and admins can submit chief trainer feedback")
+    
+    # Check if feedback already exists
+    existing = await db.chief_trainer_feedback.find_one({"session_id": session_id}, {"_id": 0})
+    
+    feedback = ChiefTrainerFeedback(
+        session_id=session_id,
+        trainer_id=current_user.id,
+        responses=responses
+    )
+    
+    doc = feedback.model_dump()
+    doc['submitted_at'] = doc['submitted_at'].isoformat()
+    
+    if existing:
+        # Update existing feedback
+        await db.chief_trainer_feedback.update_one(
+            {"session_id": session_id},
+            {"$set": doc}
+        )
+    else:
+        # Insert new feedback
+        await db.chief_trainer_feedback.insert_one(doc)
+    
+    return {"message": "Chief trainer feedback submitted successfully", "feedback": feedback}
+
+# Get Chief Trainer Feedback for Session
+@api_router.get("/chief-trainer-feedback/{session_id}")
+async def get_chief_trainer_feedback(session_id: str, current_user: User = Depends(get_current_user)):
+    """Get chief trainer feedback for a session"""
+    feedback = await db.chief_trainer_feedback.find_one({"session_id": session_id}, {"_id": 0})
+    if not feedback:
+        return None
+    return feedback
+
 # Certificate Routes
 @api_router.get("/certificates/participant/{participant_id}", response_model=List[Certificate])
 async def get_participant_certificates(participant_id: str, current_user: User = Depends(get_current_user)):
