@@ -1465,19 +1465,33 @@ const CoordinatorDashboard = ({ user, onLogout }) => {
 
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-sm text-gray-600">Test Pass Rate</CardTitle>
+                      <CardTitle className="text-sm text-gray-600">Pre-Test Pass Rate</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-3xl font-bold text-blue-600">{stats.testPassRate}%</p>
+                      <p className="text-3xl font-bold text-blue-600">{stats.preTestPassRate}%</p>
+                      <p className="text-xs text-gray-500 mt-1">Before Training</p>
                     </CardContent>
                   </Card>
 
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-sm text-gray-600">Tests Taken</CardTitle>
+                      <CardTitle className="text-sm text-gray-600">Post-Test Pass Rate</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-3xl font-bold text-purple-600">{stats.totalTestsTaken}</p>
+                      <p className="text-3xl font-bold text-green-600">{stats.postTestPassRate}%</p>
+                      <p className="text-xs text-gray-500 mt-1">After Training</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm text-gray-600">Improvement</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className={`text-3xl font-bold ${stats.improvement >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {stats.improvement > 0 ? '+' : ''}{stats.improvement}%
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">Pass Rate Change</p>
                     </CardContent>
                   </Card>
 
