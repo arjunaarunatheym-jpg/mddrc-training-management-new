@@ -2159,6 +2159,16 @@ async def generate_docx_report(session_id: str, current_user: User = Depends(get
             "practical_photo_3": training_report.get('practical_photo_3') if training_report else None
         }
         
+        # Get participant feedback
+        all_feedback = await db.course_feedback.find({"session_id": session_id}, {"_id": 0}).to_list(100)
+        feedback_data = []
+        for feedback in all_feedback:
+            participant = await db.users.find_one({"id": feedback['participant_id']}, {"_id": 0})
+            feedback_data.append({
+                "participant_name": participant.get('full_name') if participant else 'Unknown',
+                "responses": feedback.get('responses', [])
+            })
+        
         # Create DOCX document
         doc = Document()
         
